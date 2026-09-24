@@ -54,7 +54,7 @@ htmlcov/
 *.so
 *.dylib
 *.dSYM/
-/legacy/tools/gbarun
+/gbarun
 
 # ---------- ROM 与模拟器数据 ----------
 # 原版 ROM 是版权输入、汉化 ROM 是构建产物，二者都只留在本地
@@ -79,11 +79,7 @@ htmlcov/
 /render_*.png
 /out_*.png
 
-# ---------- legacy/：历史存档，按需保留 ----------
-# libmgba 预编译构建树（约 94 MB，外部代码）
-/legacy/mgba/
+# ---------- legacy/：模拟器验证链备份 ----------
 # GBA BIOS（版权文件）
 /legacy/bios/
 /legacy/gba_bios.zip
-# 早期模拟器帧转储：PPM 为中间产物（体积大），同目录 PNG 截图保留
-/legacy/shots/*.ppm

@@ -33,7 +33,7 @@ JP_ROM = os.path.join(ROOT, 'Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Ja
 GLYPH_FILE_OFF = 0x66F440
 GLYPH_BYTES = 0x80
 GLYPH_COUNT = 0x6A8
-MAPFILE = os.path.join(ROOT, 'data', 'glyph_map.json')
+MAPFILE = os.path.join(ROOT, 'data', 'glyph_map.csv')
 FONTS = [
     '/System/Library/Fonts/Hiragino Sans GB.ttc',
     '/System/Library/Fonts/STHeiti Medium.ttc',
@@ -91,8 +91,8 @@ def glyph_preview(b, path):
 
 
 def load_map():
-    raw = json.load(open(MAPFILE, encoding='utf-8'))['map']
-    return {int(k, 16): v for k, v in raw.items()}
+    import mapio
+    return mapio.load_map(MAPFILE)
 
 
 def used_codes(rom):

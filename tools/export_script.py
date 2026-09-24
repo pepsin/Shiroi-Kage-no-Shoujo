@@ -22,7 +22,6 @@ Usage
 """
 import argparse
 import csv
-import json
 import os
 import struct
 import sys
@@ -33,16 +32,15 @@ import gbtext as g
 
 WORK = os.path.join(ROOT, 'data')
 CACHE = os.path.join(ROOT, 'work', 'cache')
-MAPFILE_JP = os.path.join(WORK, 'glyph_map.json')
+MAPFILE_JP = os.path.join(WORK, 'glyph_map.csv')
 GLYPH_MAX = 0x6A8
 CTRL = {0x0D: '\n', 0x0E: '\n\n'}
 
 
 def load_table(kind='jp'):
     """Glyph map keyed by table index (JP original only)."""
-    path = MAPFILE_JP
-    raw = json.load(open(path, encoding='utf-8'))['map']
-    return {int(k, 16): v for k, v in raw.items()}
+    import mapio
+    return mapio.load_map(MAPFILE_JP)
 
 
 def find_offset_table(d, minlen=4):

@@ -9,7 +9,7 @@ Verified conventions (see docs/技术说明.md):
   * CN text codes index the table directly:      char = map[code]
   * JP original text codes index the table +1:   char = map[code + 1]
 
-The glyph map (data/glyph_map.json) is keyed by
+The glyph map (data/glyph_map.csv, loaded via mapio) is keyed by
 table index.
 
 Usage:
@@ -18,7 +18,6 @@ Usage:
   gbtext.py stats <rom>                 # coverage / kana sanity report
 """
 import argparse
-import json
 import os
 import struct
 import sys
@@ -29,7 +28,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 FAT = 0x15A000
 BASE = 0x15C000
 GLYPH_MAX = 0x6A8
-MAPFILE_JP = os.path.join(ROOT, 'data', 'glyph_map.json')
+MAPFILE_JP = os.path.join(ROOT, 'data', 'glyph_map.csv')
 
 # JP original only - the CN release is no longer used anywhere in this project.
 JP_ROM = os.path.join(ROOT, 'Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba')
@@ -90,15 +89,9 @@ def load_entry(rom, eid):
 
 
 def load_map(kind='jp'):
-    """Load the glyph map for a ROM kind ('jp' or 'cn').
-
-    The JP map is built from the JP font table by build_jp_map.py; if it is not
-    available yet we fall back to the CN map (kana will be right, kanji wrong),
-    and say so on stderr.
-    """
-    path = MAPFILE_JP
-    raw = json.load(open(path, encoding='utf-8'))['map']
-    return {int(k, 16): v for k, v in raw.items()}
+    """Load the JP glyph map (CSV is the single source of truth)."""
+    import mapio
+    return mapio.load_map(MAPFILE_JP)
 
 
 def build_decoder(rom_kind, gmap):

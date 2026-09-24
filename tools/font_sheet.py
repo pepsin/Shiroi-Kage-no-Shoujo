@@ -65,8 +65,8 @@ def main():
     f_small = load_font(18)
     claimed = {}
     try:
-        import json
-        claimed = json.load(open('data/glyph_map.json', encoding='utf-8'))['map']
+        import mapio
+        claimed = mapio.load_map()
     except Exception:
         pass
     cols = a.cols
@@ -79,13 +79,13 @@ def main():
         oy = (i // cols) * cell_h + 6
         d.text((ox + CELL // 2, oy), f'{c:03X}', font=f_code, fill=255, anchor='ma')
         draw_glyph(img, rom[base + c * 0x80: base + c * 0x80 + 0x80], ox + 8, oy + 26)
-        label = claimed.get(f'{c:03X}', '?')
+        label = claimed.get(c, '?')
         d.text((ox + cw // 2, oy + 26 + CELL + 2), label, font=f_char, fill=255, anchor='ma')
         d.text((ox + cw // 2, oy + 26 + CELL + 56), 'claimed', font=f_small, fill=120, anchor='ma')
     img.save(a.out)
     print(f'{a.out}: {len(codes)} cells')
     for c in codes:
-        print(f'  {c:03X} claimed={claimed.get(f"{c:03X}", "?")}')
+        print(f'  {c:03X} claimed={claimed.get(c, "?")}')
 
 
 if __name__ == '__main__':

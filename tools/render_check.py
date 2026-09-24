@@ -63,14 +63,14 @@ def main():
     ap.add_argument('codes')
     ap.add_argument('--base', default='0x66F440')
     ap.add_argument('--cols', type=int, default=8)
-    ap.add_argument('--mapfile', default='data/glyph_map.json')
+    ap.add_argument('--mapfile', default='data/glyph_map.csv')
     a = ap.parse_args()
     rom = open(a.rom, 'rb').read()
     base = int(a.base, 0)
     gmap = {}
     try:
-        import json
-        gmap = json.load(open(a.mapfile, encoding='utf-8'))['map']
+        import mapio
+        gmap = mapio.load_map(a.mapfile)
     except Exception as e:
         print(f'(no map labels: {e})')
     codes = []
@@ -91,14 +91,14 @@ def main():
         oy = (i // cols) * (CELL + LABEL_H + 6) + 4
         draw_glyph(img, rom[base + c * 0x80: base + c * 0x80 + 0x80], ox, oy)
         text_img(d, ox, oy + CELL + 2, f'{c:03X}')
-        ch = gmap.get(f'{c:03X}', '')
+        ch = gmap.get(c, '')
         up = f'U+{ord(ch):04X}' if ch else ''
         text_img(d, ox + 34, oy + CELL + 2, up, fill=170)
     img.save(a.out)
     # print the code list with the current labels so the reviewer knows what to check
     print(f'{a.out}: {len(codes)} cells')
     for c in codes:
-        print(f'  {c:03X}  current_label={gmap.get(f"{c:03X}", "?")!r}')
+        print(f'  {c:03X}  current_label={gmap.get(c, "?")!r}')
 
 
 if __name__ == '__main__':

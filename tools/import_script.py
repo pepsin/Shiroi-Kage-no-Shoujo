@@ -17,7 +17,6 @@ Usage:
 """
 import argparse
 import csv
-import json
 import os
 import struct
 import sys
@@ -32,9 +31,8 @@ TEXTDIR = os.path.join(ROOT, 'data')
 
 
 def load_maps():
-    jp = {int(k, 16): v for k, v in
-          json.load(open(os.path.join(TEXTDIR, 'glyph_map.json'), encoding='utf-8'))['map'].items()}
-    return jp, None
+    import mapio
+    return mapio.load_map(os.path.join(TEXTDIR, 'glyph_map.csv')), None
 
 
 def reverse_map(m, kind='jp'):

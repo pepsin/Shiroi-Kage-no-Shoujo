@@ -47,17 +47,18 @@ python3 tools/import_script.py \
 │   ├── font_patch.py              字形槽管理 / 新字形生成
 │   ├── gbtext.py                  ROM 文本编解码（底层）
 │   ├── lz77.py                    LZ77 压缩（腾空间 / 回写）
-│   ├── build_jp_map.py            汇总转写 → glyph_map.json
+│   ├── build_jp_map.py            （旧）汇总转写 → glyph_map，已停用
+│   ├── render_master.py           全部字形总图（校对用）
+│   ├── mapio.py                   glyph_map.csv 读写入口
 │   ├── render_sheets.py           渲染字形表
 │   └── font_sheet.py              字形校验图
-├── legacy/                                   # 历史/可选（可删）
-│   ├── mgba/                      libmgba 构建树（模拟器验证用，94 MB）
-│   ├── shots/ bios/               早期截图与 BIOS
-│   └── tools/                     早期字形取证/模拟器脚本
+├── legacy/                                   # 模拟器验证链备份（64 KB）
+│   ├── gbarun.c                   无头 mGBA harness 源码（需自行编译 libmgba）
+│   └── bios/ gba_bios.zip         GBA BIOS
 └── work/                                     # 运行时缓存（可删，会自动重建）
 ```
 
-**可安全删除**：`work/`（缓存）、`legacy/`（历史；删掉后无法再做模拟器级验证）。
+**可安全删除**：`work/`（缓存）、`legacy/`（验证链备份；删掉后需重新写 harness 才能做模拟器级验证）。
 `data/` 与 `docs/` 是成果，不要删。
 
 ---
