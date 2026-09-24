@@ -1,0 +1,89 @@
+# ============================================================
+#  侦探神宫寺三郎 — 白影的少女 · GBA 汉化工程
+#  Git 忽略规则
+#
+#  原则：只提交"人写的东西"（源码 / 译文 / 映射 / 文档 / 校对图），
+#        不提交系统垃圾、缓存、构建产物、版权数据。
+# ============================================================
+
+# ---------- 操作系统杂项（macOS / Windows / Linux） ----------
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ---------- 编辑器 / IDE ----------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.tmproj
+*.bak
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------- 运行时缓存 / 构建产物 ----------
+# work/cache/ 等由工具自动重建，见 README「可安全删除」
+/work/
+/build/
+/dist/
+/out/
+*.log
+
+# ---------- 编译产物（C 工具等） ----------
+*.o
+*.a
+*.so
+*.dylib
+*.dSYM/
+/legacy/tools/gbarun
+
+# ---------- ROM 与模拟器数据 ----------
+# 原版 ROM 是版权输入、汉化 ROM 是构建产物，二者都只留在本地
+*.gba
+*.gbc
+*.gb
+*.gba.bak
+# 存档 / 即时存档 / 金手指
+*.sav
+*.ss[0-9]
+*.state
+*.state[0-9]
+*.sgm
+*.cht
+# GBA BIOS（版权文件，自行准备）
+*.bios
+*BIOS*.bin
+
+# ---------- 工具生成的字形图 ----------
+# 注意：data/sheets_jp/*.png 是校对源图，必须保留
+/font_sheet*.png
+/render_*.png
+/out_*.png
+
+# ---------- legacy/：历史存档，按需保留 ----------
+# libmgba 预编译构建树（约 94 MB，外部代码）
+/legacy/mgba/
+# GBA BIOS（版权文件）
+/legacy/bios/
+/legacy/gba_bios.zip
+# 早期模拟器帧转储：PPM 为中间产物（体积大），同目录 PNG 截图保留
+/legacy/shots/*.ppm
