@@ -183,6 +183,121 @@ static void writePPM(const char* path, const color_t* buf, unsigned w, unsigned 
 
 #define TRACE(...) do { fprintf(stderr, "[trace] " __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); } while (0)
 
+/* ---- memory access tracer ------------------------------------------------
+ * ARMMemory exposes the CPU's load/store function pointers, so wrapping them
+ * gives a full read/write trace.  Used to find where the text renderer gets
+ * its per-glyph advance from.
+ *   GBARUN_LOGLOAD="lo:hi"   log loads from that address range
+ *   GBARUN_LOGSTORE="lo:hi"  log stores to that address range
+ *   GBARUN_LOGPC="lo:hi"     only log while PC is inside that range
+ */
+static uint32_t g_logLoad0, g_logLoad1, g_logStore0, g_logStore1;
+static uint32_t g_logPc0, g_logPc1;
+static FILE* g_memLog;
+static uint32_t (*orig_load32)(struct ARMCore*, uint32_t, int*);
+static uint32_t (*orig_load16)(struct ARMCore*, uint32_t, int*);
+static uint32_t (*orig_load8)(struct ARMCore*, uint32_t, int*);
+static void (*orig_store32)(struct ARMCore*, uint32_t, int32_t, int*);
+static void (*orig_store16)(struct ARMCore*, uint32_t, int16_t, int*);
+static void (*orig_store8)(struct ARMCore*, uint32_t, int8_t, int*);
+static uint32_t (*orig_loadMultiple)(struct ARMCore*, uint32_t, int, enum LSMDirection, int*);
+static uint32_t (*orig_storeMultiple)(struct ARMCore*, uint32_t, int, enum LSMDirection, int*);
+
+static int pcOk(struct ARMCore* cpu);
+
+static uint32_t wrap_loadMultiple(struct ARMCore* cpu, uint32_t base, int mask,
+                                  enum LSMDirection dir, int* c) {
+	uint32_t v = orig_loadMultiple(cpu, base, mask, dir, c);
+	if (g_memLog && pcOk(cpu)) {
+		for (int i = 0; i < 16; ++i) {
+			uint32_t a = base + 4 * i;
+			if ((mask & (1 << i)) && a >= g_logLoad0 && a < g_logLoad1) {
+				uint32_t val = orig_load32(cpu, a, c);
+				fprintf(g_memLog, "LDM  a=0x%08X v=0x%08X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+				        a, val, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1],
+				        cpu->gprs[2], cpu->gprs[3], g_frameNo);
+			}
+		}
+	}
+	return v;
+}
+static uint32_t wrap_storeMultiple(struct ARMCore* cpu, uint32_t base, int mask,
+                                   enum LSMDirection dir, int* c) {
+	if (g_memLog && pcOk(cpu)) {
+		for (int i = 0; i < 16; ++i) {
+			uint32_t a = base + 4 * i;
+			if ((mask & (1 << i)) && a >= g_logStore0 && a < g_logStore1) {
+				fprintf(g_memLog, "STM  a=0x%08X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+				        a, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1],
+				        cpu->gprs[2], cpu->gprs[3], g_frameNo);
+			}
+		}
+	}
+	return orig_storeMultiple(cpu, base, mask, dir, c);
+}
+
+static int pcOk(struct ARMCore* cpu) {
+	if (!g_logPc1) return 1;
+	uint32_t pc = cpu->gprs[15] & 0xFFFFFFFE;
+	return pc >= g_logPc0 && pc < g_logPc1;
+}
+
+static uint32_t wrap_load32(struct ARMCore* cpu, uint32_t a, int* c) {
+	uint32_t v = orig_load32(cpu, a, c);
+	if (g_memLog && a >= g_logLoad0 && a < g_logLoad1 && pcOk(cpu))
+		fprintf(g_memLog, "LD32 a=0x%08X v=0x%08X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+		        a, v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
+	return v;
+}
+static uint32_t wrap_load16(struct ARMCore* cpu, uint32_t a, int* c) {
+	uint32_t v = orig_load16(cpu, a, c);
+	if (g_memLog && a >= g_logLoad0 && a < g_logLoad1 && pcOk(cpu))
+		fprintf(g_memLog, "LD16 a=0x%08X v=0x%04X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+		        a, v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
+	return v;
+}
+static uint32_t wrap_load8(struct ARMCore* cpu, uint32_t a, int* c) {
+	uint32_t v = orig_load8(cpu, a, c);
+	if (g_memLog && a >= g_logLoad0 && a < g_logLoad1 && pcOk(cpu))
+		fprintf(g_memLog, "LD8  a=0x%08X v=0x%02X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+		        a, v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
+	return v;
+}
+static void wrap_store32(struct ARMCore* cpu, uint32_t a, int32_t v, int* c) {
+	if (g_memLog && a >= g_logStore0 && a < g_logStore1 && pcOk(cpu))
+		fprintf(g_memLog, "ST32 a=0x%08X v=0x%08X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+		        a, (uint32_t) v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
+	orig_store32(cpu, a, v, c);
+}
+static void wrap_store16(struct ARMCore* cpu, uint32_t a, int16_t v, int* c) {
+	if (g_memLog && a >= g_logStore0 && a < g_logStore1 && pcOk(cpu))
+		fprintf(g_memLog, "ST16 a=0x%08X v=0x%04X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+		        a, (uint16_t) v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
+	orig_store16(cpu, a, v, c);
+}
+static void wrap_store8(struct ARMCore* cpu, uint32_t a, int8_t v, int* c) {
+	if (g_memLog && a >= g_logStore0 && a < g_logStore1 && pcOk(cpu))
+		fprintf(g_memLog, "ST8  a=0x%08X v=0x%02X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
+		        a, (uint8_t) v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
+	orig_store8(cpu, a, v, c);
+}
+
+static void installTracer(struct GBA* g) {
+	struct ARMMemory* m = &g->cpu->memory;
+	orig_load32 = m->load32; orig_load16 = m->load16; orig_load8 = m->load8;
+	orig_store32 = m->store32; orig_store16 = m->store16; orig_store8 = m->store8;
+	orig_loadMultiple = m->loadMultiple; orig_storeMultiple = m->storeMultiple;
+	m->load32 = wrap_load32; m->load16 = wrap_load16; m->load8 = wrap_load8;
+	m->store32 = wrap_store32; m->store16 = wrap_store16; m->store8 = wrap_store8;
+	m->loadMultiple = wrap_loadMultiple; m->storeMultiple = wrap_storeMultiple;
+}
+
+static void parseRange(const char* s, uint32_t* lo, uint32_t* hi) {
+	*lo = strtoul(s, NULL, 0);
+	const char* c = strchr(s, ':');
+	*hi = c ? strtoul(c + 1, NULL, 0) : *lo + 1;
+}
+
 int main(int argc, char** argv) {
 	if (argc < 4) {
 		fprintf(stderr, "usage: %s <rom> <frames> <outprefix> [dumpFrame ...]\n", argv[0]);
@@ -217,6 +332,19 @@ int main(int argc, char** argv) {
 			const char* c = strchr(st, ':');
 			g_storeTrace1 = c ? strtol(c + 1, NULL, 0) : g_storeTrace0;
 			if (!g_tileLog) g_tileLog = fopen("/tmp/gbarun_tile.txt", "wb");
+		}
+	}
+	{
+		const char* ll = getenv("GBARUN_LOGLOAD");
+		const char* ls = getenv("GBARUN_LOGSTORE");
+		const char* lp = getenv("GBARUN_LOGPC");
+		if (ll || ls) {
+			g_logLoad0 = g_logStore0 = 0;
+			g_logLoad1 = g_logStore1 = 0;
+			if (ll) parseRange(ll, &g_logLoad0, &g_logLoad1);
+			if (ls) parseRange(ls, &g_logStore0, &g_logStore1);
+			if (lp) parseRange(lp, &g_logPc0, &g_logPc1);
+			g_memLog = fopen("/tmp/gbarun_mem.txt", "wb");
 		}
 	}
 	if (getenv("GBARUN_KEYWATCH")) {
@@ -300,6 +428,31 @@ int main(int argc, char** argv) {
 			if (sf) sf->close(sf);
 			fflush(stderr);
 		}
+	}
+	{
+		/* GBARUN_POKE="addr:hexbytes" - write into guest memory after the state
+		 * load (used to re-point RAM-held ROM table pointers). */
+		const char* pk = getenv("GBARUN_POKE");
+		if (pk) {
+			uint32_t addr = strtoul(pk, NULL, 0);
+			const char* c = strchr(pk, ':');
+			if (c) {
+				const char* h = c + 1;
+				int n = 0;
+				while (h[0] && h[1] && n < 64) {
+					char b[3] = { h[0], h[1], 0 };
+					uint8_t v = (uint8_t) strtoul(b, NULL, 16);
+					struct ARMCore* cpu = ((struct GBA*) core->board)->cpu;
+					cpu->memory.store8(cpu, addr + n, v, NULL);
+					h += 2; ++n;
+				}
+				fprintf(stderr, "[poke] wrote %d bytes at 0x%08X\n", n, addr);
+			}
+		}
+	}
+	if (g_memLog) {
+		installTracer((struct GBA*) core->board);
+		fprintf(stderr, "[trace] memory tracer installed\n");
 	}
 
 	g_watchGba = core->board;

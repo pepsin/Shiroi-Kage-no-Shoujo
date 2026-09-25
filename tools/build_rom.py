@@ -40,6 +40,8 @@ FONT_EID = 850
 OLD_COUNT = 0x6A8
 GLYPH_BYTES = 0x80
 NEW_TABLE_OFF = 0x800000          # file offset of the rewritten table
+ADV_TABLE_OFF = 0x6A4840          # FAT 851: per-glyph advance bytes (JP: 1704 x 0x0C)
+ADV_VALUE = 0x0C                  # the JP value for every glyph
 WORK = os.path.join(ROOT, 'work')
 EXT_MAP = os.path.join(WORK, 'glyph_map.ext.csv')
 
@@ -140,6 +142,36 @@ def main():
     struct.pack_into('<II', rom, FAT + FONT_EID * 8, off, len(table))
     print(f'font table -> file 0x{NEW_TABLE_OFF:X} (FAT {FONT_EID}: '
           f'off=0x{off:X} size={len(table)})')
+
+    # --- extend the per-glyph advance table ------------------------------
+    # The text renderer computes a character's x as
+    #     base + field8 + (i+1)*field10 + sum(1 + ADV[glyph])
+    # where ADV is a byte table that in the JP ROM sits at file 0x6A4840
+    # (FAT 851, 1704 bytes, all 0x0C) immediately after the 1704 glyph
+    # bitmaps.  Our appended glyphs (index >= 1704) read past its end into
+    # the next resource, which produced overlapping characters and huge gaps
+    # in game.  FAT 852's data starts at 0x6A4EF0, inside the range the
+    # extended table needs, so relocate it and fill the table in place.
+    tbl_end = ADV_TABLE_OFF + count
+    fat852_off, fat852_size = struct.unpack_from('<2I', rom, FAT + 852 * 8)
+    fat852_file = BASE + fat852_off
+    if fat852_size and fat852_file < tbl_end:
+        blob = bytes(rom[fat852_file:fat852_file + fat852_size])
+        new852 = len(rom)
+        rom.extend(blob)
+        struct.pack_into('<II', rom, FAT + 852 * 8, new852 - BASE, fat852_size)
+        print(f'relocated FAT852: file 0x{fat852_file:X} -> 0x{new852:X} '
+              f'({fat852_size} bytes) to clear 0x{ADV_TABLE_OFF:X}..0x{tbl_end:X}')
+    n_adv = 0
+    for i in range(count):
+        pos = ADV_TABLE_OFF + i
+        if pos >= len(rom):
+            rom.extend(b'\x00' * (pos + 1 - len(rom)))
+        if rom[pos] != ADV_VALUE:
+            rom[pos] = ADV_VALUE
+            n_adv += 1
+    print(f'advance table: 0x{ADV_TABLE_OFF:X}..0x{tbl_end:X} '
+          f'({count} glyphs, {n_adv} bytes set to 0x{ADV_VALUE:02X}; FAT 851 size kept)')
     # sanity: the old tail must be free, and the new blob must not collide
     print(f'ROM size now {len(rom)} bytes ({len(rom) / 1048576:.2f} MB)')
 
