@@ -34,6 +34,10 @@ HIRA = re.compile(r'[\u3040-\u309f]')
 SKIP = {
     850, 851, 852,   # font tables and the table right after them
     605,             # kana -> kanji candidate dictionary for text input
+    547,             # bitmap/font data (kana tables + noise) - false positives
+    571,             # bitmap/font data (kana tables + noise) - false positives
+    611,             # glyph/bitmap pool (`死ぱ`, `獲` noise), no offset table
+    636,             # bitmap data (`雇雇ぱ` noise), no offset table
 }
 
 

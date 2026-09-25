@@ -10,6 +10,7 @@
  *   <prefix>_f<N>_info.txt   video/CPU register state
  * Always writes <prefix>_final.ppm
  */
+#include <mgba/core/serialize.h>
 #include <mgba/core/core.h>
 #include <mgba/core/interface.h>
 #include <mgba/core/log.h>
@@ -279,10 +280,22 @@ int main(int argc, char** argv) {
 		const char* st = getenv("GBARUN_STATE");
 		if (st && *st) {
 			struct VFile* sf = VFileOpen(st, O_RDONLY);
-			if (sf && core->loadState(core, sf)) {
+			/* mCoreLoadStateNamed handles the frontend's container formats
+			 * (PNG-wrapped gbAs/gbAx chunks); core->loadState only accepts a
+			 * bare GBASerializedState. */
+			if (sf && mCoreLoadStateNamed(core, sf, SAVESTATE_ALL)) {
 				fprintf(stderr, "[state] loaded %s\n", st);
 			} else {
-				fprintf(stderr, "[state] FAILED to load %s\n", st);
+				if (sf) {
+					sf->seek(sf, 0, SEEK_SET);
+					if (core->loadState(core, sf)) {
+						fprintf(stderr, "[state] loaded (raw) %s\n", st);
+					} else {
+						fprintf(stderr, "[state] FAILED to load %s\n", st);
+					}
+				} else {
+					fprintf(stderr, "[state] FAILED to open %s\n", st);
+				}
 			}
 			if (sf) sf->close(sf);
 			fflush(stderr);

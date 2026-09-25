@@ -157,6 +157,12 @@ def main():
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
 
+    # --- redraw the pre-rendered menu plates (title screen) ---------------
+    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_menu_plates.py'),
+           '--apply', a.out, a.out]
+    print('running:', ' '.join(cmd[1:]))
+    subprocess.run(cmd, check=True)
+
 
 if __name__ == '__main__':
     main()
