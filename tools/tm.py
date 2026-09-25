@@ -102,8 +102,13 @@ def check_pair(src, cn, rid=''):
         return errs
     if '\t' in cn or '\n' in cn or '\r' in cn:
         errs.append('contains TAB/CR/LF')
-    if punct_skeleton(src) != punct_skeleton(cn):
-        errs.append(f'punctuation {punct_skeleton(src)!r} -> {punct_skeleton(cn)!r}')
+    sp, cp = punct_skeleton(src), punct_skeleton(cn)
+    if sp != cp:
+        # a kana surname restored to kanji may legitimately introduce 々
+        # (ささき -> 佐々木); anything else is a real mismatch.
+        extra = collections.Counter(cp) - collections.Counter(sp)
+        if not (KANA.search(src) and set(extra) <= {'\u3005'}):
+            errs.append(f'punctuation {sp!r} -> {cp!r}')
     # digits / latin letters may be written as Chinese numerals in prose
     # (2箱 -> 两盒); the skeleton is only reported by `check`.
     # ー (0x13) is the game's repetition mark (佐ー木 = 佐々木, 人ー = 人々):
@@ -126,6 +131,9 @@ def cmd_batches(a):
         sel = [r for r in sel if r['entry'] in want]
     if a.min_entry:
         sel = [r for r in sel if int(r['entry']) >= a.min_entry]
+    if a.skip_entry:
+        skip = set(a.skip_entry)
+        sel = [r for r in sel if r['entry'] not in skip]
     if a.limit:
         sel = sel[:a.limit]
     batches = []
@@ -271,6 +279,62 @@ def cmd_apply(a):
             print(f'  {rid} {src!r} -> {cn!r} [{"; ".join(errs)}]')
 
 
+# Project-wide term normalisation, re-applied after every apply so that
+# batches translated at different times cannot drift apart.
+NORM_RULES = [
+    (('かすみ', 'バ～'), [('酒吧香澄', '香澄酒吧'), ('霞', '香澄')]),
+    (('由香子', 'ゆかこ'), [('由佳子', '由香子')]),
+    (('荒川', '聡'), [('敏', '聡')]),
+    (('メゾン',), [('梅松西新宿', '西新宿公寓'), ('Maison西新宿', '西新宿公寓')]),
+]
+NORM_FIXED = {'42:14': '天沼香澄。我是真奈美，'}
+
+
+def cmd_set(a):
+    """Apply explicit rid->cn corrections from a TSV (rid, cn)."""
+    lines, rows = load_master()
+    by_rid = {rid_of(r['entry'], r['idx']): r for r in rows}
+    n = 0
+    for path in a.files:
+        for rid, cn, _jp in read_batch(path):
+            cn = cn.strip()
+            row = by_rid.get(rid)
+            if row is None:
+                print(f'  {path}: unknown rid {rid}')
+                continue
+            errs = check_pair(row['jp_text'], cn, rid)
+            if errs:
+                print(f'  {rid}: REFUSED [{"; ".join(errs)}]')
+                continue
+            if row['translation'] != cn:
+                lines[row['line']] = set_field(lines[row['line']], 6, cn)
+                n += 1
+    with open(MASTER, 'w', encoding='utf-8', newline='') as f:
+        f.write('\n'.join(lines) + '\n')
+    print(f'set {n} rows')
+
+
+def cmd_norm(a):
+    lines, rows = load_master()
+    n = 0
+    for r in rows:
+        cn = r['translation']
+        if not cn:
+            continue
+        rid = rid_of(r['entry'], r['idx'])
+        new = NORM_FIXED.get(rid, cn)
+        for keys, subs in NORM_RULES:
+            if any(k in r['jp_text'] for k in keys):
+                for a_, b_ in subs:
+                    new = new.replace(a_, b_)
+        if new != cn:
+            lines[r['line']] = set_field(lines[r['line']], 6, new)
+            n += 1
+    with open(MASTER, 'w', encoding='utf-8', newline='') as f:
+        f.write('\n'.join(lines) + '\n')
+    print(f'normalised {n} rows')
+
+
 def cmd_check(a):
     _, rows = load_master()
     have = glyph_set()
@@ -339,8 +403,10 @@ def main():
     b.add_argument('--size', type=int, default=200)
     b.add_argument('--entry', action='append', default=[])
     b.add_argument('--by-entry', action='store_true', default=True)
+    b.add_argument('--no-by-entry', action='store_false', dest='by_entry')
     b.add_argument('--limit', type=int, default=0)
     b.add_argument('--min-entry', type=int, default=0)
+    b.add_argument('--skip-entry', action='append', default=[])
     b.add_argument('--outdir', default='')
     b.set_defaults(func=cmd_batches)
     p = sub.add_parser('apply')
@@ -351,6 +417,11 @@ def main():
     v = sub.add_parser('verify')
     v.add_argument('files', nargs='+')
     v.set_defaults(func=cmd_verify)
+    st = sub.add_parser('set')
+    st.add_argument('files', nargs='+')
+    st.set_defaults(func=cmd_set)
+    n = sub.add_parser('norm')
+    n.set_defaults(func=cmd_norm)
     c = sub.add_parser('check')
     c.set_defaults(func=cmd_check)
     s = sub.add_parser('status')
