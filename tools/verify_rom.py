@@ -52,12 +52,19 @@ def main():
                                  encoding='utf-8'), delimiter='\t'):
         if r.get('base'):
             cat[int(r['eid'])] = (int(r['table_off']), int(r['base']))
-    rows = list(csv.DictReader(open(a.master, encoding='utf-8'), delimiter='\t'))
-    want = {}
+    rows = list(csv.DictReader(open(a.master, encoding='utf-8'), delimiter='\t',
+                               restkey='extra'))
+    want = {}          # entry -> {idx: text}   (offset-table rows)
+    want_pool = {}     # entry -> {absolute_offset: (text, slot_words)}
     for r in rows:
         tr = (r.get('translation') or '').strip()
-        if tr:
-            want.setdefault(int(r['entry']), {})[int(r['idx'])] = tr
+        if not tr:
+            continue
+        eid = int(r['entry'])
+        if (r.get('extra') or [''])[0] == 'pool':
+            want_pool.setdefault(eid, {})[int(r['offset'])] = (tr, int(r['n_codes']) + 1)
+        else:
+            want.setdefault(eid, {})[int(r['idx'])] = tr
 
     # --- font table sanity ------------------------------------------------
     off, size = struct.unpack_from('<2I', rom, FAT + FONT_EID * 8)
@@ -104,6 +111,24 @@ def main():
     # --- round-trip ------------------------------------------------------
     ok = bad = 0
     samples = []
+    # entries whose text lives in a NUL-separated pool (no offset table)
+    for eid in sorted(want_pool):
+        d = g.load_entry(rom, eid)
+        if d is None:
+            print(f'e{eid:04d}: missing entry')
+            continue
+        for off, (tr, slot) in sorted(want_pool[eid].items()):
+            n = 0
+            while off + 2 * n + 2 <= len(d) and struct.unpack_from('<H', d, off + 2 * n)[0] != 0:
+                n += 1
+            got = ''.join(table.get(c, f'[{c:03X}]')
+                          for c in struct.unpack_from(f'<{n}H', d, off))
+            if got == tr:
+                ok += 1
+            else:
+                bad += 1
+                if len(samples) < 8:
+                    samples.append(f'e{eid}:@{off:X} want {tr!r} got {got!r}')
     for eid in sorted(want):
         d = g.load_entry(rom, eid)
         if d is None:
@@ -124,7 +149,7 @@ def main():
                 bad += 1
                 if len(samples) < 8:
                     samples.append(f'e{eid}:{idx} want {tr!r} got {g_!r}')
-    print(f'round-trip: {ok} strings match, {bad} differ')
+    print(f'round-trip (table + pool): {ok} strings match, {bad} differ')
     for s in samples:
         print('  ', s)
     print('RESULT:', 'OK' if (bad == 0 and not missing) else 'PROBLEM')

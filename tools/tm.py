@@ -68,7 +68,7 @@ def load_master():
             p.append('')
         rows.append({'line': i, 'entry': p[0], 'idx': p[1], 'offset': p[2],
                      'n_codes': int(p[3] or 0), 'n_bytes': p[4], 'jp_text': p[5],
-                     'translation': p[6]})
+                     'translation': p[6], 'kind': p[7] if len(p) > 7 else ''})
     return lines, rows
 
 
@@ -83,8 +83,10 @@ def set_field(line, idx, value):
     return '\t'.join(p) + cr
 
 
-def rid_of(entry, idx):
-    return f'{entry}:{idx}'
+def rid_of(entry, idx, kind=''):
+    """Row id.  Pool rows share their idx numbering with the offset-table rows
+    of the same entry, so they get a distinct prefix."""
+    return f'{entry}:p{idx}' if kind == 'pool' else f'{entry}:{idx}'
 
 
 def glyph_set():
@@ -185,7 +187,7 @@ def read_batch(path):
 
 def cmd_verify(a):
     _, rows = load_master()
-    src = {rid_of(r['entry'], r['idx']): r['jp_text'] for r in rows}
+    src = {rid_of(r['entry'], r['idx'], r['kind']): r['jp_text'] for r in rows}
     ok_all = True
     for path in a.files:
         try:
@@ -225,8 +227,8 @@ def cmd_verify(a):
 
 def cmd_apply(a):
     lines, rows = load_master()
-    by_rid = {rid_of(r['entry'], r['idx']): r for r in rows}
-    src_by_rid = {rid_of(r['entry'], r['idx']): r['jp_text'] for r in rows}
+    by_rid = {rid_of(r['entry'], r['idx'], r['kind']): r for r in rows}
+    src_by_rid = {rid_of(r['entry'], r['idx'], r['kind']): r['jp_text'] for r in rows}
     tm = {}
     conflicts = []
     rejected = []
@@ -390,7 +392,7 @@ def cmd_check(a):
         if not cn:
             continue
         translated += 1
-        rid = rid_of(r['entry'], r['idx'])
+        rid = rid_of(r['entry'], r['idx'], r['kind'])
         for e in check_pair(r['jp_text'], cn, rid):
             key = e.split(':')[0].split(' ')[0]
             bad[key] += 1
@@ -412,7 +414,7 @@ def cmd_check(a):
     with open(out, 'w', encoding='utf-8') as f:
         f.write(''.join(sorted(missing, key=lambda c: -missing[c])))
     print(f'wrote {out}')
-    dash = [f'{rid_of(r["entry"], r["idx"])} {r["jp_text"]!r} -> {r["translation"]!r}'
+    dash = [f'{rid_of(r["entry"], r["idx"], r["kind"])} {r["jp_text"]!r} -> {r["translation"]!r}'
             for r in rows if '\u30fc' in r['translation']]
     print(f'rows whose translation still contains ー: {len(dash)}')
     with open(os.path.join(WORK, 'dash_rows.txt'), 'w', encoding='utf-8') as f:
