@@ -120,7 +120,8 @@ def check_pair(src, cn, rid=''):
     # (2箱 -> 两盒); the skeleton is only reported by `check`.
     # ー (0x13) is the game's repetition mark (佐ー木 = 佐々木, 人ー = 人々):
     # it must disappear in normal words but stays inside personal names.
-    kana = set(KANA.findall(cn)) - {'\u30fc'}
+    # ー is the game's repetition mark; ・ is punctuation (in MUST_KEEP)
+    kana = set(KANA.findall(cn)) - {'\u30fc', '\u30fb'}
     if kana and rid not in KANA_OK_RIDS:
         errs.append('kana left: ' + ''.join(sorted(kana)))
     if len(cn) > len(src):
