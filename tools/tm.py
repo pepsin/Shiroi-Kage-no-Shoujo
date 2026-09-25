@@ -299,14 +299,20 @@ NORM_RULES = [
     (('君',), [('洋子君', '洋子'), ('貴之君', '貴之'), ('拓朗君', '拓朗'),
                ('神宮寺君', '神宮寺'), ('知也君', '知也'), ('春菜君', '春菜'),
                ('拓也君', '拓也'), ('拓海君', '拓海'), ('美鈴君', '美鈴')]),
+    # the girl ゆう is written 悠 in the script itself (e279 悠を探していた)
+    # ('悠' never collides with 悠然 etc. here: ゆっくり is translated 悠闲)
+    # -- handled in ALWAYS_SUB below
     # 洋子's surname is 御苑 in the script (the kana profile page guessed 美園)
     (('みその', '御苑'), [('美園', '御苑')]),
+    # とくちゃん is 安田徳子's nickname (-> 小徳), シゲ is 中西茂's (-> 阿茂);
+    # keep the two apart by looking at the source line.
+    (('とくちゃん',), [('阿茂', '小徳')]),
     # 安田徳子 / とくちゃん: keep the Japanese form 徳, one nickname spelling
     (('徳子', 'とくちゃん'), [('小徳子', '小徳'), ('德子', '徳子'), ('小德', '小徳')]),
 ]
 NORM_FIXED = {'42:14': '天沼香澄。我是真奈美，'}
 # name + 君 (honorific) -> name; never collides with the word 君子
-ALWAYS_SUB = [('洋子君', '洋子'), ('貴之君', '貴之'), ('拓朗君', '拓朗'),
+ALWAYS_SUB = [('優', '悠'), ('洋子君', '洋子'), ('貴之君', '貴之'), ('拓朗君', '拓朗'),
               ('神宮寺君', '神宮寺'), ('知也君', '知也'), ('春菜君', '春菜'),
               ('隆君', '隆'), ('拓也君', '拓也'), ('拓海君', '拓海'), ('美鈴君', '美鈴')]
 

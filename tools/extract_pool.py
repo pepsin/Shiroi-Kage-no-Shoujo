@@ -31,7 +31,10 @@ import gbtext as g
 import mapio
 
 HIRA = re.compile(r'[\u3040-\u309f]')
-SKIP = {850, 851, 852}          # font tables and the table right after it
+SKIP = {
+    850, 851, 852,   # font tables and the table right after them
+    605,             # kana -> kanji candidate dictionary for text input
+}
 
 
 def scan_pools(d, dec):
