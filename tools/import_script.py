@@ -30,20 +30,28 @@ import lz77
 TEXTDIR = os.path.join(ROOT, 'data')
 
 
-def load_maps():
+def load_maps(path=None):
     import mapio
-    return mapio.load_map(os.path.join(TEXTDIR, 'glyph_map.csv')), None
+    return mapio.load_map(path or os.path.join(TEXTDIR, 'glyph_map.csv')), None
 
 
 def reverse_map(m, kind='jp'):
     """character -> the code to write for it (inverts the ROM's decode rule).
+
+    Verified against the JP ROM bitmaps and script codes:
+        index 0x08B = を  and the script writes 0x08C for を
+        index 0x020 = ×   and the script writes 0x021 for ×
+    so  index = code - 1  (code >= 0x20), i.e.  code = index + 1.
+    Codes below 0x20 index the table directly.
 
     A few characters exist at two indices; prefer the higher index because that
     is the one the game's text actually uses for the dakuten-form glyphs.
     """
     rev = {}
     for idx, ch in sorted(m.items(), reverse=True):
-        code = idx if (kind != 'jp' or idx < 0x20) else idx - 1
+        if not ch:
+            continue
+        code = idx if (kind != 'jp' or idx < 0x20) else idx + 1
         if code >= 0:
             rev[ch] = code
     return rev
@@ -140,8 +148,9 @@ def main():
     ap.add_argument('--rom', default=g.JP_ROM)
     ap.add_argument('--out', default='')
     ap.add_argument('--report-only', action='store_true')
+    ap.add_argument('--map', default='', help='glyph map CSV (default data/glyph_map.csv)')
     a = ap.parse_args()
-    jp_map, _ = load_maps()
+    jp_map, _ = load_maps(a.map or None)
     kind = g.which(a.rom)
     rev = reverse_map(jp_map, kind)
     rows = list(csv.DictReader(open(a.master, encoding='utf-8'), delimiter='\t'))

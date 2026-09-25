@@ -37,7 +37,7 @@ def load_map():
 def reverse_map(m, kind='jp'):
     rev = {}
     for idx, ch in sorted(m.items(), reverse=True):
-        code = idx if (kind != 'jp' or idx < 0x20) else idx - 1
+        code = idx if (kind != 'jp' or idx < 0x20) else idx + 1
         if code >= 0 and ch:
             rev[ch] = code
     return rev
