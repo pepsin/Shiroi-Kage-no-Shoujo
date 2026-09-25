@@ -294,10 +294,19 @@ NORM_RULES = [
     (('由香子', 'ゆかこ'), [('由佳子', '由香子')]),
     (('荒川', '聡'), [('敏', '聡')]),
     (('メゾン',), [('梅松西新宿', '西新宿公寓'), ('Maison西新宿', '西新宿公寓')]),
+    # 〜君 (くん) is a boss-to-subordinate honorific; Chinese has no equivalent,
+    # so it is dropped (洋子君 -> 洋子).
+    (('君',), [('洋子君', '洋子'), ('貴之君', '貴之'), ('拓朗君', '拓朗'),
+               ('神宮寺君', '神宮寺'), ('知也君', '知也'), ('春菜君', '春菜'),
+               ('拓也君', '拓也'), ('拓海君', '拓海'), ('美鈴君', '美鈴')]),
     # 安田徳子 / とくちゃん: keep the Japanese form 徳, one nickname spelling
     (('徳子', 'とくちゃん'), [('小徳子', '小徳'), ('德子', '徳子'), ('小德', '小徳')]),
 ]
 NORM_FIXED = {'42:14': '天沼香澄。我是真奈美，'}
+# name + 君 (honorific) -> name; never collides with the word 君子
+ALWAYS_SUB = [('洋子君', '洋子'), ('貴之君', '貴之'), ('拓朗君', '拓朗'),
+              ('神宮寺君', '神宮寺'), ('知也君', '知也'), ('春菜君', '春菜'),
+              ('隆君', '隆'), ('拓也君', '拓也'), ('拓海君', '拓海'), ('美鈴君', '美鈴')]
 
 
 def cmd_set(a):
@@ -333,6 +342,9 @@ def cmd_norm(a):
             continue
         rid = rid_of(r['entry'], r['idx'])
         new = NORM_FIXED.get(rid, cn)
+        if '君子' not in new:
+            for a_, b_ in ALWAYS_SUB:
+                new = new.replace(a_, b_)
         if '\u3005' in r['jp_text']:
             for k, prot in enumerate(PROTECT):
                 new = new.replace(prot, f'\x00{k}\x00')
