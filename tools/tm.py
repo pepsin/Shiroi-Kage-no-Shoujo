@@ -40,7 +40,12 @@ IN_HEADER = ['rid', 'entry', 'idx', 'len', 'jp_text']
 # Punctuation that must survive translation unchanged and in order.
 # ～ (0x14) is the long-vowel mark inside katakana loanwords, so it is NOT
 # mandatory: デ～タ -> 数据 is correct.  々 (0x12) is a script separator and is.
-MUST_KEEP = set('、。，！？「」『』・：；“”‘’（）〈〉《》‥□○■×＋＜＞％々')
+MUST_KEEP = set('、。，！？「」『』・：；“”‘’（）〈〉《》‥…□○■×＋＜＞％')
+# The script uses 々 as a line-final trailing-off mark (not as a repetition
+# mark - that is ー in this game); it is written as … in the translation.
+CHAR_MAP = {'々': '…'}
+# ...except inside the surname 佐々木, which keeps its real repetition mark.
+PROTECT = ['佐々木']
 KANA = re.compile(r'[\u3040-\u30ff\u31f0-\u31ff]')
 
 # Rows allowed to keep kana in the output (names written in kana in the
@@ -88,7 +93,9 @@ def glyph_set():
 
 
 def punct_skeleton(s):
-    return ''.join(ch for ch in s if ch in MUST_KEEP)
+    for prot in PROTECT:                     # 佐々木 keeps its real 々
+        s = s.replace(prot, '\x00' * len(prot))
+    return ''.join(CHAR_MAP.get(ch, ch) for ch in s if CHAR_MAP.get(ch, ch) in MUST_KEEP)
 
 
 def alnum_skeleton(s):
@@ -323,6 +330,12 @@ def cmd_norm(a):
             continue
         rid = rid_of(r['entry'], r['idx'])
         new = NORM_FIXED.get(rid, cn)
+        if '\u3005' in r['jp_text']:
+            for k, prot in enumerate(PROTECT):
+                new = new.replace(prot, f'\x00{k}\x00')
+            new = new.replace('\u3005', '\u2026')
+            for k, prot in enumerate(PROTECT):
+                new = new.replace(f'\x00{k}\x00', prot)
         for keys, subs in NORM_RULES:
             if any(k in r['jp_text'] for k in keys):
                 for a_, b_ in subs:
