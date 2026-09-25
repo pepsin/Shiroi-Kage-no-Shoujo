@@ -52,28 +52,71 @@ def load_font(size=16):
     raise SystemExit('no CJK font available')
 
 
-def render_glyph(ch, size=15, dx=0, dy=0):
-    """Render ch into 16x16 4bpp game glyph bytes."""
+# ---------------------------------------------------------------------------
+# Glyph style of the original font, measured from the JP ROM:
+#   * of 1703 non-empty glyphs, ALL use exactly two ink values: 1 (body)
+#     and 2 (a 1px drop shadow on the RIGHT edge of the body: 29576 right-only
+#     + 12647 corner pixels, only 3 bottom-only)
+#   * the body lives in an 11x11 design box at (0,1) inside the 16x16 cell
+#     (median 11x11, max 12x12); the cell's right/bottom is left as margin
+#   * the body carries ~50 ink pixels per glyph
+# Drawing a glyph with the full 0..15 range (anti-aliased system font) makes
+# it the wrong colour and the wrong size on screen, so everything the Chinese
+# build injects is quantised back to this two-level style.
+# ---------------------------------------------------------------------------
+CN_SIZE = 18          # point size whose downscaled weight matches the original
+CN_THR = 90           # coverage threshold for the body
+CN_BOX = 11           # design box side
+CN_ORIGIN = (0, 1)    # top-left of the design box inside the cell
+
+
+def render_body(ch, size=CN_SIZE, thr=CN_THR, box=CN_BOX, origin=CN_ORIGIN):
+    """Render ch as a 16x16 0/1 body mask fitted to the design box."""
     from PIL import Image, ImageDraw
     font = load_font(size)
-    img = Image.new('L', (16, 16), 0)
-    ImageDraw.Draw(img).text((dx, dy), ch, font=font, fill=15)
-    px = img.load()
+    big = Image.new('L', (size * 3, size * 3), 0)
+    ImageDraw.Draw(big).text((size, size), ch, font=font, fill=255)
+    bb = big.getbbox()
+    body = [[0] * 16 for _ in range(16)]
+    if not bb:
+        return body
+    img = big.crop(bb)
+    w, h = img.size
+    s = min(box / w, box / h)
+    nw, nh = max(1, round(w * s)), max(1, round(h * s))
+    img = img.resize((nw, nh), Image.BOX)
+    cell = Image.new('L', (16, 16), 0)
+    cell.paste(img, (origin[0] + (box - nw) // 2, origin[1] + (box - nh) // 2))
+    px = cell.load()
+    for y in range(16):
+        for x in range(16):
+            if px[x, y] >= thr:
+                body[y][x] = 1
+    return body
+
+
+def pack_levels(levels):
+    """16x16 0..15 levels -> 0x80 bytes (tiles TL,TR,BL,BR, low nibble left)."""
     out = bytearray(GLYPH_BYTES)
-    for t in range(4):                       # TL,TR,BL,BR
+    for t in range(4):
         tx, ty = (t & 1) * 8, (t >> 1) * 8
         for y in range(8):
             for x in range(4):
-                lo = 0
-                hi = 0
-                for n in range(2):
-                    v = px[tx + x * 2 + n, ty + y] & 0xF
-                    if n == 0:
-                        lo = v
-                    else:
-                        hi = v
+                lo = levels[ty + y][tx + x * 2] & 0xF
+                hi = levels[ty + y][tx + x * 2 + 1] & 0xF
                 out[t * 32 + y * 4 + x] = (hi << 4) | lo
     return bytes(out)
+
+
+def render_glyph(ch, size=CN_SIZE, dx=0, dy=0):
+    """Render ch into 16x16 4bpp game glyph bytes, matching the original style."""
+    body = render_body(ch, size=size)
+    lv = [row[:] for row in body]
+    for y in range(16):                      # 1px drop shadow, right side only
+        for x in range(16):
+            if body[y][x] and x + 1 < 16 and lv[y][x + 1] == 0:
+                lv[y][x + 1] = 2
+    return pack_levels(lv)
 
 
 def glyph_preview(b, path):
