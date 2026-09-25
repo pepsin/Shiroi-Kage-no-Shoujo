@@ -127,7 +127,7 @@ def main():
                 ok += 1
             else:
                 bad += 1
-                if len(samples) < 8:
+                if len(samples) < 40:
                     samples.append(f'e{eid}:@{off:X} want {tr!r} got {got!r}')
     for eid in sorted(want):
         d = g.load_entry(rom, eid)
@@ -147,7 +147,7 @@ def main():
                 ok += 1
             else:
                 bad += 1
-                if len(samples) < 8:
+                if len(samples) < 40:
                     samples.append(f'e{eid}:{idx} want {tr!r} got {g_!r}')
     print(f'round-trip (table + pool): {ok} strings match, {bad} differ')
     for s in samples:

@@ -44,7 +44,8 @@ MUST_KEEP = set('、。，！？「」『』・：；“”‘’（）〈〉《
 # The script uses 々 as a line-final trailing-off mark (not as a repetition
 # mark - that is ー in this game); it is written as … in the translation.
 CHAR_MAP = {'々': '…'}
-# ...except inside the surname 佐々木, which keeps its real repetition mark.
+# ...except inside the surname 佐々木, which is a real repetition mark and is
+# written with the repeated character in Chinese: 佐々木 / 佐ー木 -> 佐佐木.
 PROTECT = ['佐々木']
 KANA = re.compile(r'[\u3040-\u30ff\u31f0-\u31ff]')
 
@@ -327,7 +328,9 @@ NORM_FIXED = {'42:14': '天沼香澄。我是真奈美，'}
 # name + 君 (honorific) -> name; never collides with the word 君子
 ALWAYS_SUB = [('優', '悠'), ('洋子君', '洋子'), ('貴之君', '貴之'), ('拓朗君', '拓朗'),
               ('神宮寺君', '神宮寺'), ('知也君', '知也'), ('春菜君', '春菜'),
-              ('隆君', '隆'), ('拓也君', '拓也'), ('拓海君', '拓海'), ('美鈴君', '美鈴')]
+              ('隆君', '隆'), ('拓也君', '拓也'), ('拓海君', '拓海'), ('美鈴君', '美鈴'),
+              # the surname is Chinese-style repeated, not 々 / ー
+              ('佐ー木', '佐佐木'), ('佐々木', '佐佐木')]
 
 
 def cmd_set(a):
@@ -377,7 +380,7 @@ def cmd_norm(a):
                 new = new.replace(prot, f'\x00{k}\x00')
             new = new.replace('\u3005', '\u2026')
             for k, prot in enumerate(PROTECT):
-                new = new.replace(f'\x00{k}\x00', prot)
+                new = new.replace(f'\x00{k}\x00', '佐佐木')
         for keys, subs in NORM_RULES:
             if any(k in r['jp_text'] for k in keys):
                 for a_, b_ in subs:

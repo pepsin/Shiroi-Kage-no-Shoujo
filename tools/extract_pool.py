@@ -93,6 +93,35 @@ def scan_pools(d, dec):
     return uniq
 
 
+def table_slots(d, toff, base):
+    """[(start, end)] of every offset-table string slot, in absolute offsets.
+
+    A run found by scan_pools that starts inside one of these slots is not a
+    separate string - it is the suffix of a string the offset table already
+    covers, produced when the `[X6PCN]` filter rejects the full run (a line with
+    a digit in it) and the scanner retries one code later.  Writing both rows
+    would clobber the longer one.
+    """
+    vals = []
+    p = toff
+    while p + 4 <= len(d):
+        x = struct.unpack_from('<I', d, p)[0]
+        if x == 0xFFFFFFFF or x > len(d) or (vals and x <= vals[-1]):
+            break
+        vals.append(x)
+        p += 4
+    out = []
+    for o in vals:
+        off = base + o
+        if off + 2 > len(d):
+            continue
+        n = 0
+        while off + 2 * n + 2 <= len(d) and struct.unpack_from('<H', d, off + 2 * n)[0] != 0:
+            n += 1
+        out.append((off, off + 2 * (n + 1)))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--rom', default=g.JP_ROM)
@@ -103,6 +132,12 @@ def main():
     # mapio maps table INDEX -> char; a text code C selects index C-1
     # (code < 0x20 selects index C directly)
     dec = mapio.load_map(os.path.join(ROOT, 'data', 'glyph_map.csv'))
+    cat = {}
+    catpath = os.path.join(ROOT, 'data', 'entry_catalog.tsv')
+    if os.path.exists(catpath):
+        for r in csv.DictReader(open(catpath, encoding='utf-8'), delimiter='\t'):
+            if r.get('base'):
+                cat[int(r['eid'])] = (int(r['table_off']), int(r['base']))
     raw = open(a.master, encoding='utf-8', newline='').read()
     lines = raw.split('\n')
     if lines and lines[-1] == '':
@@ -132,11 +167,16 @@ def main():
         chars = sum(len(t) for _, t, _ in r)
         got = 0
         seen = known.get(str(eid), set())
+        slots = []
+        if eid in cat:
+            slots = table_slots(d, cat[eid][0], cat[eid][1])
         for idx, (off, txt, words) in enumerate(r):
             if (str(eid), str(off)) in have:
                 continue
             if txt in seen:      # already exported through the offset table
                 continue
+            if any(s <= off < e2 for s, e2 in slots):
+                continue         # suffix of a string the offset table owns
             added.append([str(eid), str(idx), str(off), str(words - 1),
                           str(2 * words), txt, '', 'pool'])
             got += 1
