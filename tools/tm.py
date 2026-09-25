@@ -342,6 +342,12 @@ def cmd_norm(a):
             continue
         rid = rid_of(r['entry'], r['idx'])
         new = NORM_FIXED.get(rid, cn)
+        # 貴之君 -> 小貴之: the boy is addressed affectionately
+        # (but not in 貴之君達 "貴之 and the others", which must stay short)
+        if '貴之君達' in r['jp_text']:
+            new = new.replace('小貴之', '貴之')
+        elif '貴之君' in r['jp_text'] and '小貴之' not in new:
+            new = new.replace('貴之', '小貴之')
         if '君子' not in new:
             for a_, b_ in ALWAYS_SUB:
                 new = new.replace(a_, b_)
