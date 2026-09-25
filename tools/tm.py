@@ -84,9 +84,9 @@ def set_field(line, idx, value):
 
 
 def rid_of(entry, idx, kind=''):
-    """Row id.  Pool rows share their idx numbering with the offset-table rows
-    of the same entry, so they get a distinct prefix."""
-    return f'{entry}:p{idx}' if kind == 'pool' else f'{entry}:{idx}'
+    """Row id.  idx is unique per entry (pool rows are renumbered past the
+    offset-table rows by renumber.py), so a plain entry:idx is enough."""
+    return f'{entry}:{idx}'
 
 
 def glyph_set():
@@ -144,6 +144,17 @@ def cmd_batches(a):
     if a.skip_entry:
         skip = set(a.skip_entry)
         sel = [r for r in sel if r['entry'] not in skip]
+    if a.unique:
+        # one row per distinct jp_text: apply() propagates the translation to
+        # every duplicate, so the translators only see each string once
+        seen = set()
+        uniq = []
+        for r in sel:
+            if r['jp_text'] in seen:
+                continue
+            seen.add(r['jp_text'])
+            uniq.append(r)
+        sel = uniq
     if a.limit:
         sel = sel[:a.limit]
     batches = []
@@ -163,8 +174,8 @@ def cmd_batches(a):
         with open(path, 'w', encoding='utf-8') as f:
             f.write('\t'.join(IN_HEADER) + '\n')
             for r in b:
-                f.write('\t'.join([rid_of(r['entry'], r['idx']), r['entry'], r['idx'],
-                                   str(r['n_codes']), r['jp_text']]) + '\n')
+                f.write('\t'.join([rid_of(r['entry'], r['idx'], r['kind']), r['entry'],
+                                   r['idx'], str(r['n_codes']), r['jp_text']]) + '\n')
     print(f'{len(sel)} untranslated rows -> {len(batches)} batches in {outdir}')
     for n, b in enumerate(batches):
         ents = sorted({r['entry'] for r in b}, key=int)
@@ -449,6 +460,8 @@ def main():
     b.add_argument('--by-entry', action='store_true', default=True)
     b.add_argument('--no-by-entry', action='store_false', dest='by_entry')
     b.add_argument('--limit', type=int, default=0)
+    b.add_argument('--unique', action='store_true',
+                   help='one row per distinct jp_text (dedup, ~2.7x fewer rows)')
     b.add_argument('--min-entry', type=int, default=0)
     b.add_argument('--skip-entry', action='append', default=[])
     b.add_argument('--outdir', default='')

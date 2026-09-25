@@ -68,6 +68,11 @@ CN_SIZE = 18          # point size whose downscaled weight matches the original
 CN_THR = 90           # coverage threshold for the body
 CN_BOX = 11           # design box side
 CN_ORIGIN = (0, 1)    # top-left of the design box inside the cell
+# CJK punctuation is a small mark in the lower-left of the cell in the original
+# font (、 = 4x3 px at (1,9), 。 = 5x4 at (1,8)); anything we add in that class
+# -- notably the ellipsis that replaces the script's 々 -- must sit there too,
+# not stretched across the middle of the cell.
+PUNCT_LOWER_LEFT = set('、。，‥…')
 
 
 def render_body(ch, size=CN_SIZE, thr=CN_THR, box=CN_BOX, origin=CN_ORIGIN):
@@ -86,7 +91,11 @@ def render_body(ch, size=CN_SIZE, thr=CN_THR, box=CN_BOX, origin=CN_ORIGIN):
     nw, nh = max(1, round(w * s)), max(1, round(h * s))
     img = img.resize((nw, nh), Image.BOX)
     cell = Image.new('L', (16, 16), 0)
-    cell.paste(img, (origin[0] + (box - nw) // 2, origin[1] + (box - nh) // 2))
+    if ch in PUNCT_LOWER_LEFT:
+        # bottom-left, like the original font's punctuation
+        cell.paste(img, (origin[0], origin[1] + box - nh))
+    else:
+        cell.paste(img, (origin[0] + (box - nw) // 2, origin[1] + (box - nh) // 2))
     px = cell.load()
     for y in range(16):
         for x in range(16):
