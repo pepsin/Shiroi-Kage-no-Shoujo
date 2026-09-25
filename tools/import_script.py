@@ -142,6 +142,34 @@ def rebuild_entry(d, translations, rev, kind):
     return bytes(out), None, too_long
 
 
+def rebuild_pool_entry(d, items, rev):
+    """Rewrite NUL-terminated strings that live in an entry's string pool
+    (entries with no offset table, see tools/extract_pool.py).
+
+    items: [(absolute_offset, text, slot_words)].  Each string is written back
+    to its own offset and padded with 0x0000 to the end of its original slot,
+    so every reference the bytecode holds stays valid.
+    """
+    out = bytearray(d)
+    too_long = []
+    for off, text, slot in items:
+        new_codes, miss = encode_text(text, rev)
+        if any(c == 0 for c in new_codes):
+            too_long.append((off, 'contains unmapped character'))
+            continue
+        if len(new_codes) + 1 > slot:
+            too_long.append((off, f'needs {len(new_codes) + 1} words, slot has {slot}'))
+            continue
+        pos = off
+        for c in new_codes:
+            struct.pack_into('<H', out, pos, c)
+            pos += 2
+        while pos < off + 2 * slot:
+            struct.pack_into('<H', out, pos, 0)
+            pos += 2
+    return bytes(out), None, too_long
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--master', default=os.path.join(TEXTDIR, 'translation.tsv'))
@@ -153,29 +181,45 @@ def main():
     jp_map, _ = load_maps(a.map or None)
     kind = g.which(a.rom)
     rev = reverse_map(jp_map, kind)
-    rows = list(csv.DictReader(open(a.master, encoding='utf-8'), delimiter='\t'))
+    rows = list(csv.DictReader(open(a.master, encoding='utf-8'), delimiter='\t',
+                               restkey='extra'))
     todo = {}
+    pool = {}
     empty = 0
     for r in rows:
         tr = (r.get('translation') or '').strip()
         if not tr:
             empty += 1
             continue
-        todo.setdefault(int(r['entry']), {})[int(r['idx'])] = tr
-    print(f'master rows: {len(rows)}; with translation: {len(rows) - empty}; entries touched: {len(todo)}')
-    if not todo:
+        eid = int(r['entry'])
+        if (r.get('extra') or [''])[0] == 'pool':
+            pool.setdefault(eid, []).append(
+                (int(r['offset']), tr, int(r['n_codes']) + 1))
+        else:
+            todo.setdefault(eid, {})[int(r['idx'])] = tr
+    print(f'master rows: {len(rows)}; with translation: {len(rows) - empty}; '
+          f'entries touched: {len(todo)} table + {len(pool)} pool')
+    if not todo and not pool:
         print('nothing to import (translation column empty)')
         return
     rom = bytearray(open(a.rom, 'rb').read())
     nfit = napp = 0
     miss_total = 0
-    for eid, trs in sorted(todo.items()):
+    for eid in sorted(set(todo) | set(pool)):
         d = g.load_entry(bytes(rom), eid)
         if d is None:
             print(f'e{eid:04d}: missing'); continue
-        nd, err, too_long = rebuild_entry(d, trs, rev, kind)
-        if nd is None:
-            print(f'e{eid:04d}: {err}'); continue
+        nd, too_long = d, []
+        if eid in todo:
+            nd, err, tl = rebuild_entry(nd, todo[eid], rev, kind)
+            if nd is None:
+                print(f'e{eid:04d}: {err}'); continue
+            too_long += tl
+        if eid in pool:
+            nd, err, tl = rebuild_pool_entry(nd, pool[eid], rev)
+            if nd is None:
+                print(f'e{eid:04d}: {err}'); continue
+            too_long += tl
         if too_long:
             print(f'e{eid:04d}: {len(too_long)} strings skipped, e.g. {too_long[:2]}')
         enc = lz77.compress(nd)
