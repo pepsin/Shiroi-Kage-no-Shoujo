@@ -7,20 +7,26 @@
 
 ## 一、现在就能做的事
 
-**翻译**：打开 `data/translation.tsv`，填最后一列 `translation`。
+**生成中文 ROM**（译文已完成，字库已扩容，一条命令）：
 
 ```bash
-# 1) 查看待翻译内容（示例）
-head -20 data/translation.tsv
-
-# 2) 翻译完成后生成中文 ROM
-python3 tools/import_script.py \
-  --master data/translation.tsv \
-  --rom "Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba" \
-  --out out.gba
+python3 tools/build_rom.py --out out.gba
 ```
 
-如果译文用到了日文字库里没有的字，先做字形补充（见第四节）。
+校验：
+
+```bash
+python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
+```
+
+当前状态：**45484 / 45488 行已译**（余 4 行为 e1489 二进制噪声，有意不译），
+ROM 内文本往返 **45484/45484 完全一致**，标题画面与日文原版**逐像素一致**。
+
+> 译文与流程详见 `docs/翻译作业流程.md`；打包细节（扩表 / 编码约定 / 验证）
+> 详见 `docs/打包流程.md`。
+
+**继续翻译/修改译文**：直接改 `data/translation.tsv` 的 `translation` 列，
+再跑一次 `build_rom.py` 即可。
 
 ---
 
@@ -67,42 +73,36 @@ python3 tools/import_script.py \
 
 | 项 | 值 |
 |---|---|
-| 字形表位置 | ROM 文件 **0x66F440**（FAT 条目 850），1704 字形 |
+| 日文原版字形表 | ROM 文件 **0x66F440**（FAT 条目 850），1704 字形 |
+| 中文版字形表 | **0x800000**，**3003 字形**（原 1704 + 新做 1171 + 备用 128） |
 | 字形格式 | 16×16，4bpp，0x80 字节/字，tile 序 TL,TR,BL,BR |
-| 文本编码 | `字符 = MAP[code+1]`（code ≥ 0x20）；`字符 = MAP[code]`（code < 0x20 标点/数字） |
+| 文本编码 | `字符 = MAP[code-1]`（code ≥ 0x20）；`字符 = MAP[code]`（code < 0x20 标点/数字）<br>位图实证：`を` 在表下标 0x08B、剧本用码位 0x08C |
 | 剧本规模 | **45488 条字符串**，190 个条目，约 47 万字符 |
-| 字库用字 | 剧本实际使用 **1524** 个字形 |
-| 可复用空槽 | **148 个** |
-| 编解码往返 | **29477 条 0 失败** |
+| 已译 | **45484 行**（余 4 行为 e1489 二进制噪声） |
+| 译文用字 | **2102** 个不同汉字；931 个日文字库已有，**1171 个新做** |
+| 空槽 | 773 个（本次**不回收**——标题/菜单等资源也可能在用这些字形） |
+| ROM 内往返 | **45484 / 45484 完全一致** |
 | 汉字排列 | JIS X 0208 一级汉字按读音序子集（有跳字） |
 
-详见 `docs/技术说明.md`。
+详见 `docs/技术说明.md`、`docs/打包流程.md`。
 
 ---
 
-## 四、字形扩容（译文出现新字时）
+## 四、字库扩容（已实施）
 
-实测：常用简体字符集里约 **275 个字**日文字库没有，而空槽只有 148 个。
+译文需要 2102 个字形，日文表只有 1704 槽、可回收空槽 773 个，缺 400 槽。
+
+**做法**：新字**全部追加在表尾**（不覆盖任何原槽，避免破坏标题画面等资源），
+整表放到 **文件 0x800000**，FAT 850 指向新表——**不需要改任何代码**。
+ROM 尾部原有 198 KB 空区装不下 384 KB 的新表，因此扩了文件；
+GBA 头部没有 ROM 尺寸字段，扩文件是安全的。
+
+新字形用系统字体渲染成游戏原生格式：
 
 ```bash
-# 检查某字符集缺多少字
-python3 tools/font_patch.py capacity <charset.txt>
-
-# 列出可复用槽位
-python3 tools/font_patch.py slots
-
-# 预览某个字的渲染效果
-python3 tools/font_patch.py render 汉 /tmp/han.png
-
-# 把新字形写入空槽（可批量）
-python3 tools/font_patch.py inject out.gba "汉=0x026" "语=0x02E"
+python3 tools/font_patch.py render 汉 /tmp/han.png    # 预览渲染效果
+python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 ```
-
-**方案**（详见 `docs/汉化方案设计.md`）：
-1. **先做槽位复用**（148 个，零风险，不动表结构）
-2. 不够时再**整表搬迁扩容**——字形表是 FAT 资源加载，代码里无硬编码地址，
-   可搬到 ROM 尾部空区并更新 FAT 850；空间可由 `lz77.py` 重压其他资源腾出
-3. 翻译时尽量选用现有字库已有字形，可显著减少新字数量
 
 ---
 
