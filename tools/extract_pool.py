@@ -38,13 +38,17 @@ SKIP = {
 
 
 def scan_pools(d, dec):
-    """Return (parity, [(offset, text, words)]) for the best pool in d."""
-    best = None
+    """Return [(offset, text, words)] for EVERY NUL-terminated string run in d.
+
+    A script entry interleaves bytecode with several separate string runs, so
+    the earlier "keep the longest run" behaviour silently dropped most of an
+    entry's text.  All runs are collected instead; each string has to carry
+    kana and avoid the byte patterns that bitmap data produces.
+    """
+    out = []
     for par in (0, 1):
         i = par
-        runs = []
         cur = []
-        last = None
         while i + 1 < len(d):
             c = struct.unpack_from('<H', d, i)[0]
             if c == 0:
@@ -63,30 +67,26 @@ def scan_pools(d, dec):
                 i += 2
             ok = (i + 1 < len(d) and struct.unpack_from('<H', d, i)[0] == 0
                   and len(buf) >= 2)
-            if ok:
-                txt = ''.join(buf)
-                # real script text carries kana; bitmap data decodes to
-                # plausible-looking but kana-free kanji soup
-                if HIRA.search(txt) and not re.search(r'[X6PCN]', txt):
-                    cur.append((start, txt, len(buf) + 1))
-                    last = i + 2
-                    i += 2
-                    continue
-            if len(cur) >= 10 and sum(len(t) for _, t, _ in cur) >= 60:
-                runs.append((cur, last))
+            txt = ''.join(buf)
+            if ok and HIRA.search(txt) and not re.search(r'[X6PCN]', txt):
+                cur.append((start, txt, len(buf) + 1))
+                i += 2
+                continue
+            if len(cur) >= 3 and sum(len(t) for _, t, _ in cur) >= 20:
+                out.extend(cur)
             cur = []
             i = start + 2
-        if len(cur) >= 10 and sum(len(t) for _, t, _ in cur) >= 60:
-            runs.append((cur, last))
-        for r, last in runs:
-            span = last - r[0][0]
-            used = sum(2 * x[2] for x in r)
-            if not span or used / span < 0.7:
-                continue
-            chars = sum(len(t) for _, t, _ in r)
-            if best is None or chars > best[0]:
-                best = (chars, par, r)
-    return best
+        if len(cur) >= 3 and sum(len(t) for _, t, _ in cur) >= 20:
+            out.extend(cur)
+    # drop duplicates found at both parities
+    seen = set()
+    uniq = []
+    for off, txt, words in out:
+        if (off, txt) in seen:
+            continue
+        seen.add((off, txt))
+        uniq.append((off, txt, words))
+    return uniq
 
 
 def main():
@@ -122,10 +122,10 @@ def main():
         d = g.load_entry(rom, eid)
         if not d or len(d) > 0x40000:
             continue
-        b = scan_pools(d, dec)
-        if not b:
+        r = scan_pools(d, dec)
+        if not r:
             continue
-        chars, par, r = b
+        chars = sum(len(t) for _, t, _ in r)
         got = 0
         seen = known.get(str(eid), set())
         for idx, (off, txt, words) in enumerate(r):
@@ -139,7 +139,7 @@ def main():
         if got:
             n_entries += 1
             n_rows += got
-            print(f'  e{eid:<5} parity {par}  {got:4d} strings  {chars:6d} chars')
+            print(f'  e{eid:<5} {got:4d} strings  {chars:6d} chars')
     print(f'\n{len(lines) - 1} rows -> +{n_rows} pool rows from {n_entries} entries')
     if a.dry_run:
         return
