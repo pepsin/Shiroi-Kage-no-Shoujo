@@ -38,7 +38,12 @@ BENIGN = [(0x44BF60, 0x44BF60 + 576), (0x44C1A0, 0x44C1A0 + 576),
           # save screen menu items: セーブ / ロード / 消去 (two 32x16 halves each)
           (0x44F5A0, 0x44F5A0 + 512), (0x44F6A0, 0x44F6A0 + 512),
           (0x44F7C0, 0x44F7C0 + 512), (0x44F8C0, 0x44F8C0 + 512),
-          (0x44F9E0, 0x44F9E0 + 512), (0x44FAE0, 0x44FAE0 + 512)]
+          (0x44F9E0, 0x44F9E0 + 512), (0x44FAE0, 0x44FAE0 + 512),
+          # in-game investigation command menu plates (patch_save_plates.py CMD_PLATES)
+          (0x66C400, 0x66C400 + 512), (0x66CA00, 0x66CA00 + 512),
+          (0x66CC00, 0x66CC00 + 512), (0x66CE00, 0x66CE00 + 512),
+          (0x66D000, 0x66D000 + 512), (0x66D200, 0x66D200 + 512),
+          (0x66D600, 0x66D600 + 512), (0x66D800, 0x66D800 + 512)]
 
 
 def benign(file_off):
