@@ -222,22 +222,17 @@ def main():
         print(f'relocated the contiguous block e{min(eids)}..e{max(eids)} '
               f'({len(eids)} entries, {bend - bstart} bytes): file '
               f'0x{bstart:X} -> 0x{new_off:X} (+{GUARD:#x} zero guard)')
-        # The block contains absolute ROM pointers to itself (a table of
-        # sub-resource addresses).  Moving the block without rewriting them
-        # leaves those references pointing at the old bytes - which the
-        # extended advance table now overwrites - and whatever they fed (the
-        # notebook background graphic on the save screen, for instance) comes
-        # out as colourful noise.  Rewrite every u32 inside the block that
-        # points into the old range.
-        old_lo, old_hi = BASE + bstart, BASE + bend
-        delta = (BASE + new_off) - (BASE + bstart)
-        fixed = 0
-        for i in range(new_off, new_off + len(blob) - 4, 4):
-            v = struct.unpack_from('<I', rom, i)[0]
-            if old_lo <= v < old_hi:
-                struct.pack_into('<I', rom, i, v + delta)
-                fixed += 1
-        print(f'  self-references rewritten inside the block: {fixed}')
+        # NOTE: do **not** try to "fix up" absolute addresses inside the block.
+        # An earlier attempt added +delta to every u32 that happened to fall in
+        # the old address window; that is a false-positive trap, because this
+        # block is mostly 4bpp artwork whose bytes constantly form values in
+        # 0x00800000..0x0092A6C0.  That heuristic rewrote 876 *data* words
+        # (every one of them had its top byte flipped 0x08 -> 0x00 / 0x09 ->
+        # 0x0A, the signature of value+delta), corrupting the notebook
+        # background and the dialogue layer.  Verified: the relocated block in
+        # the last known-good build (c893115) is byte-identical to the JP ROM,
+        # i.e. the block contains no self-references that need patching - only
+        # the FAT entry moves, and the game resolves the block through it.
     n_adv = 0
     for i in range(count):
         pos = ADV_TABLE_OFF + i
