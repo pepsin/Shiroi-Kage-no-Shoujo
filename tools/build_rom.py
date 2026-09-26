@@ -250,6 +250,12 @@ def main():
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
 
+    # --- redraw the pre-rendered save/load screen plates ------------------
+    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_save_plates.py'),
+           '--apply', a.out, a.out]
+    print('running:', ' '.join(cmd[1:]))
+    subprocess.run(cmd, check=True)
+
     # --- apply hand-edited glyph PNGs -------------------------------------
     # data/glyph_png is the editable view of the font table; without this step
     # a rebuild would silently revert every glyph the user redrew by hand.
