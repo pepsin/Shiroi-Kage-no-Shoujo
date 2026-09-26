@@ -222,6 +222,22 @@ def main():
         print(f'relocated the contiguous block e{min(eids)}..e{max(eids)} '
               f'({len(eids)} entries, {bend - bstart} bytes): file '
               f'0x{bstart:X} -> 0x{new_off:X} (+{GUARD:#x} zero guard)')
+        # The block contains absolute ROM pointers to itself (a table of
+        # sub-resource addresses).  Moving the block without rewriting them
+        # leaves those references pointing at the old bytes - which the
+        # extended advance table now overwrites - and whatever they fed (the
+        # notebook background graphic on the save screen, for instance) comes
+        # out as colourful noise.  Rewrite every u32 inside the block that
+        # points into the old range.
+        old_lo, old_hi = BASE + bstart, BASE + bend
+        delta = (BASE + new_off) - (BASE + bstart)
+        fixed = 0
+        for i in range(new_off, new_off + len(blob) - 4, 4):
+            v = struct.unpack_from('<I', rom, i)[0]
+            if old_lo <= v < old_hi:
+                struct.pack_into('<I', rom, i, v + delta)
+                fixed += 1
+        print(f'  self-references rewritten inside the block: {fixed}')
     n_adv = 0
     for i in range(count):
         pos = ADV_TABLE_OFF + i
