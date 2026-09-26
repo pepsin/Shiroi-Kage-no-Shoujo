@@ -37,10 +37,12 @@ ROW_INK, ROW_FILL = 1, 14          # row labels: crisp dark strokes on the fill
 ITEM_INK, ITEM_AA, ITEM_FILL = 9, 12, 15
 
 BLOCKS = [
-    dict(name='row プレイ', segs=[(0x44ECE0, 64, 32, 0, 0)],
-         labels=[((14, 3, 64, 14), '游戏', 'プレイ', ROW_INK, None, ROW_FILL)]),
-    dict(name='row 時間', segs=[(0x44F0E0, 64, 32, 0, 0)],
-         labels=[((1, 3, 39, 14), '时间', '時間', ROW_INK, None, ROW_FILL)]),
+    # プレイ / 時間 straddle the sprite boundary: sprite 2 holds プレイ + 時,
+    # sprite 3 holds 間 + 分.  They are one label, so the two 64x32 sprites are
+    # merged into a single canvas and 分 (x 89) is left untouched.
+    dict(name='row 游戏时间',
+         segs=[(0x44ECE0, 64, 32, 0, 0), (0x44F0E0, 64, 32, 64, 0)],
+         labels=[((14, 3, 80, 14), '游戏时间', 'プレイ時間', ROW_INK, None, ROW_FILL)]),
     dict(name='menu セーブ', segs=[(0x44F5A0, 32, 16, 0, 0), (0x44F6A0, 32, 16, 32, 0)],
          labels=[((8, 2, 36, 12), '保存', 'セーブ', ITEM_INK, ITEM_AA, ITEM_FILL)]),
     dict(name='menu ロード', segs=[(0x44F7C0, 32, 16, 0, 0), (0x44F8C0, 32, 16, 32, 0)],
@@ -56,12 +58,12 @@ FONTS = [
     '/System/Library/Fonts/PingFang.ttc',
 ]
 # ink height we aim for, per block (matches the Japanese label's own height)
-WANT_H = {'row プレイ': 9, 'row 時間': 9, 'menu セーブ': 9, 'menu ロード': 9,
+WANT_H = {'row 游戏时间': 9, 'menu セーブ': 9, 'menu ロード': 9,
           'menu 消去': 9}
 
 # runtime OBJ palette banks (luminance of each index, read from a savestate) so
 # the preview shows what the player actually sees; index 0 is transparent
-BANK = {'row プレイ': 1, 'row 時間': 1, 'menu セーブ': 4, 'menu ロード': 0, 'menu 消去': 0}
+BANK = {'row 游戏时间': 1, 'menu セーブ': 4, 'menu ロード': 0, 'menu 消去': 0}
 LUM = {0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 57, 100, 133, 189, 214, 220, 221],
        1: [76, 90, 139, 182, 182, 208, 190, 190, 252, 252, 252, 252, 252, 253, 253, 253],
        4: [0, 135, 0, 0, 255, 0, 0, 0, 170, 92, 92, 143, 158, 142, 179, 190]}
