@@ -244,6 +244,14 @@ def draw_label(img, box, text, fill, ink, aa, pixel):
                 if x0 <= xx < x1 and y0 <= yy < y1:
                     img[yy][xx] = ink
         x += w + gap
+    # The original plate text is 1px core + 1px anti-aliasing on the right
+    # (JP ロード uses 9 with 12); without it a 1px pixel-font glyph looks thin
+    # and "hollow" next to the untouched Japanese labels.
+    if aa is not None:
+        for y in range(y0, y1):
+            for x in range(x0, x1 - 1):
+                if img[y][x] == ink and img[y][x + 1] == fill:
+                    img[y][x + 1] = aa
 
 
 def to_png(img, scale=5, bank=None):
