@@ -74,9 +74,45 @@ CN_ORIGIN = (0, 1)    # top-left of the design box inside the cell
 # not stretched across the middle of the cell.
 PUNCT_LOWER_LEFT = set('、。，‥…')
 
+# ---------------------------------------------------------------------------
+# Pixel font (preferred).  Downscaling an outline font to the 11x11 design box
+# loses stroke segments and looks blurry in game; a real 11px bitmap font keeps
+# every pixel on the grid.  zpix covers all 1369 characters this build appends;
+# if it is missing, or a character is not in it, we fall back to the outline
+# renderer below.
+# ---------------------------------------------------------------------------
+PIXEL_FONT = os.path.join(ROOT, 'tools', 'fonts', 'zpix', 'zpix.bdf')
 
-def render_body(ch, size=CN_SIZE, thr=CN_THR, box=CN_BOX, origin=CN_ORIGIN):
+
+_FORCE_PIXEL = None
+
+
+def set_pixel_font(flag):
+    """Force the pixel renderer on (True) or off (False); None = auto."""
+    global _FORCE_PIXEL
+    _FORCE_PIXEL = flag
+
+
+def use_pixel_font(flag=None):
+    if flag is None:
+        flag = _FORCE_PIXEL
+    if flag is None:
+        return os.path.exists(PIXEL_FONT)
+    return bool(flag)
+
+
+def _pixel():
+    import pixelfont
+    return pixelfont.load(PIXEL_FONT)
+
+
+def render_body(ch, size=CN_SIZE, thr=CN_THR, box=CN_BOX, origin=CN_ORIGIN,
+                pixel=None):
     """Render ch as a 16x16 0/1 body mask fitted to the design box."""
+    if use_pixel_font(pixel):
+        body = _pixel().body(ch)
+        if body is not None:
+            return body
     from PIL import Image, ImageDraw
     font = load_font(size)
     big = Image.new('L', (size * 3, size * 3), 0)
@@ -117,9 +153,9 @@ def pack_levels(levels):
     return bytes(out)
 
 
-def render_glyph(ch, size=CN_SIZE, dx=0, dy=0):
+def render_glyph(ch, size=CN_SIZE, dx=0, dy=0, pixel=None):
     """Render ch into 16x16 4bpp game glyph bytes, matching the original style."""
-    body = render_body(ch, size=size)
+    body = render_body(ch, size=size, pixel=pixel)
     lv = [row[:] for row in body]
     for y in range(16):                      # 1px drop shadow, right side only
         for x in range(16):

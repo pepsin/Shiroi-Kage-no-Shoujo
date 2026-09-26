@@ -134,10 +134,16 @@ def main():
                     help='hand-edited glyph PNGs to apply on top of the render')
     ap.add_argument('--no-glyph-edits', action='store_true',
                     help='ignore data/glyph_png hand edits')
+    ap.add_argument('--outline-font', action='store_true',
+                    help='render new glyphs by downscaling a system outline font '
+                         'instead of the bundled pixel font (tools/fonts/zpix)')
     ap.add_argument('--force-glyph-edits', action='store_true',
                     help='apply data/glyph_png even if it looks stale')
     a = ap.parse_args()
 
+    font_patch.set_pixel_font(not a.outline_font)
+    print(f'new glyphs: {"pixel font " + os.path.basename(font_patch.PIXEL_FONT) if font_patch.use_pixel_font() else "outline font downscale"}',
+          flush=True)
     rom = bytearray(open(a.rom, 'rb').read())
     gmap = mapio.load_map(os.path.join(ROOT, 'data', 'glyph_map.csv'))
     rows = load_master(a.master)
