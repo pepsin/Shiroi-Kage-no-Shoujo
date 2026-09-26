@@ -21,6 +21,7 @@ Usage:
                [--headroom 128] [--no-script]
 """
 import argparse
+import time
 import collections
 import csv
 import os
@@ -49,6 +50,33 @@ EXT_MAP = os.path.join(WORK, 'glyph_map.ext.csv')
 def load_master(path):
     with open(path, encoding='utf-8') as f:
         return list(csv.DictReader(f, delimiter='\t'))
+
+
+def block_span(rom, head=852, max_gap=0x40):
+    """The contiguous FAT run that starts at `head` (entries laid out back to back).
+
+    Returns (start, end, eids) or None.  The game reads across these entry
+    boundaries, so they must stay adjacent after relocation.
+    """
+    ents = []
+    for eid in range(1500):
+        o, sz = struct.unpack_from('<2I', rom, FAT + eid * 8)
+        if sz:
+            ents.append((BASE + o, BASE + o + sz, eid))
+    ents.sort()
+    idx = next((k for k, (a, b, e) in enumerate(ents) if e == head), None)
+    if idx is None:
+        return None
+    block = [ents[idx]]
+    k = idx + 1
+    while k < len(ents):
+        a, b, e = ents[k]
+        if a - block[-1][1] < max_gap:
+            block.append(ents[k])
+            k += 1
+        else:
+            break
+    return block[0][0], block[-1][1], [e for _, _, e in block]
 
 
 def plan(rows, gmap, recycle=False):
@@ -122,6 +150,7 @@ def main():
         table[idx * GLYPH_BYTES:(idx + 1) * GLYPH_BYTES] = font_patch.render_glyph(ch)
     print(f'rendered {len(assign)} glyphs; table holds {len(table) // GLYPH_BYTES} slots')
 
+    t_phase = time.time()
     # --- new map ---------------------------------------------------------
     newmap = dict(gmap)
     for ch, idx in assign.items():
@@ -133,6 +162,8 @@ def main():
             w.writerow([f'{idx:03X}', idx, newmap.get(idx, '')])
     print(f'wrote {EXT_MAP} ({count} entries)')
 
+    print(f'[phase] rendered {len(new_chars)} glyphs in {time.time() - t_phase:.1f}s')
+    t_phase = time.time()
     # --- patch the ROM ---------------------------------------------------
     end = NEW_TABLE_OFF + len(table)
     if len(rom) < end:
@@ -151,17 +182,30 @@ def main():
     # bitmaps.  Our appended glyphs (index >= 1704) read past its end into
     # the next resource, which produced overlapping characters and huge gaps
     # in game.  FAT 852's data starts at 0x6A4EF0, inside the range the
-    # extended table needs, so relocate it and fill the table in place.
+    # extended table needs, so that data has to move out of the way.
+    #
+    # FAT 852 is the head of one long *contiguous* run of entries
+    # (e852..e1006, 0x6A4EF0..0x7CE6C0).  The game reads across those entry
+    # boundaries - moving only e852 made it run off into whatever we appended
+    # next and the game died with a white screen (EWRAM wiped, DISPCNT=0x80).
+    # So the whole run moves as one block, keeping every relative offset, and
+    # a zero guard follows it because the JP ROM has free (zero) space after
+    # the run.
+    GUARD = 0x10000
     tbl_end = ADV_TABLE_OFF + count
-    fat852_off, fat852_size = struct.unpack_from('<2I', rom, FAT + 852 * 8)
-    fat852_file = BASE + fat852_off
-    if fat852_size and fat852_file < tbl_end:
-        blob = bytes(rom[fat852_file:fat852_file + fat852_size])
-        new852 = len(rom)
+    block = block_span(rom)
+    if block and block[0] < tbl_end:
+        bstart, bend, eids = block
+        blob = bytes(rom[bstart:bend])
+        new_off = len(rom)
         rom.extend(blob)
-        struct.pack_into('<II', rom, FAT + 852 * 8, new852 - BASE, fat852_size)
-        print(f'relocated FAT852: file 0x{fat852_file:X} -> 0x{new852:X} '
-              f'({fat852_size} bytes) to clear 0x{ADV_TABLE_OFF:X}..0x{tbl_end:X}')
+        rom.extend(b'\x00' * GUARD)
+        for eid in eids:
+            o, s = struct.unpack_from('<2I', rom, FAT + eid * 8)
+            struct.pack_into('<II', rom, FAT + eid * 8, new_off + (BASE + o - bstart) - BASE, s)
+        print(f'relocated the contiguous block e{min(eids)}..e{max(eids)} '
+              f'({len(eids)} entries, {bend - bstart} bytes): file '
+              f'0x{bstart:X} -> 0x{new_off:X} (+{GUARD:#x} zero guard)')
     n_adv = 0
     for i in range(count):
         pos = ADV_TABLE_OFF + i
@@ -173,7 +217,8 @@ def main():
     print(f'advance table: 0x{ADV_TABLE_OFF:X}..0x{tbl_end:X} '
           f'({count} glyphs, {n_adv} bytes set to 0x{ADV_VALUE:02X}; FAT 851 size kept)')
     # sanity: the old tail must be free, and the new blob must not collide
-    print(f'ROM size now {len(rom)} bytes ({len(rom) / 1048576:.2f} MB)')
+    print(f'[phase] font/table/block patched in {time.time() - t_phase:.1f}s; '
+          f'ROM size now {len(rom)} bytes ({len(rom) / 1048576:.2f} MB)')
 
     patched = os.path.join(WORK, 'font_patched.gba')
     open(patched, 'wb').write(bytes(rom))
@@ -186,7 +231,7 @@ def main():
     cmd = [sys.executable, os.path.join(ROOT, 'tools', 'import_script.py'),
            '--master', a.master, '--rom', patched, '--out', a.out,
            '--map', EXT_MAP]
-    print('running:', ' '.join(cmd[1:]))
+    print('running:', ' '.join(cmd[1:]), flush=True)
     subprocess.run(cmd, check=True)
 
     # --- redraw the pre-rendered menu plates (title screen) ---------------
@@ -194,6 +239,28 @@ def main():
            '--apply', a.out, a.out]
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
+
+
+    # --- self-checks ------------------------------------------------------
+    t_check = time.time()
+    print('\n=== self-check ===', flush=True)
+    rc_verify = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_rom.py'),
+                           a.out])
+    rc_writes = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_writes.py'),
+                           '--cn', a.out])
+    ok = (rc_verify == 0 and rc_writes == 0)
+    print(f'=== self-check {"PASSED" if ok else "FAILED"} '
+          f'in {time.time() - t_check:.1f}s ===', flush=True)
+    if not ok:
+        raise SystemExit('build self-check failed - see the output above')
+
+
+def run_check(cmd):
+    """Run a self-check tool, streaming its output, and return its exit code."""
+    import subprocess
+    print('$', ' '.join(os.path.basename(c) for c in cmd[:2]), flush=True)
+    p = subprocess.run(cmd)
+    return p.returncode
 
 
 if __name__ == '__main__':

@@ -19,13 +19,29 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import gbtext as g
 
 
-def compress(data, max_window=0x1000):
-    """GBA LZ77: match length 3..18, displacement 1..0x1000."""
+def compress(data, max_window=0x1000, max_chain=96):
+    """GBA LZ77: match length 3..18, displacement 1..0x1000.
+
+    Uses a 3-byte hash chain instead of scanning every earlier position: the
+    naive version is O(n * window) and made a full build take half an hour.
+    """
     out = bytearray()
     out.append(0x10)
     n = len(data)
     out += bytes((n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF))
     MAXLEN = 18          # (0xF nibble) + 3
+    # prev[i] = previous position with the same 3-byte prefix (or -1).
+    # Positions are inserted lazily so a chain entry is always < i.
+    prev = [-1] * (n + 1)
+    head = {}
+    inserted = 0
+
+    def insert(p):
+        if p + 2 < n:
+            key = data[p] | (data[p + 1] << 8) | (data[p + 2] << 16)
+            prev[p] = head.get(key, -1)
+            head[key] = p
+
     i = 0
     while i < n:
         flag_pos = len(out)
@@ -36,19 +52,26 @@ def compress(data, max_window=0x1000):
                 break
             best_len = 0
             best_disp = 0
+            while inserted < i:
+                insert(inserted)
+                inserted += 1
             limit = min(MAXLEN, n - i)
-            start = max(0, i - max_window)
-            j = start
-            while j < i:
-                l = 0
-                while l < limit and data[j + l] == data[i + l]:
-                    l += 1
-                if l > best_len:
-                    best_len = l
-                    best_disp = i - j
-                    if best_len == limit:
-                        break
-                j += 1
+            if limit >= 3:
+                key = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
+                j = head.get(key, -1) if i + 2 < n else -1
+                chain = 0
+                low = i - max_window
+                while j >= 0 and j > low and chain < max_chain:
+                    chain += 1
+                    l = 3
+                    while l < limit and data[j + l] == data[i + l]:
+                        l += 1
+                    if l > best_len:
+                        best_len = l
+                        best_disp = i - j
+                        if best_len == limit:
+                            break
+                    j = prev[j]
             if best_len >= 3 and 1 <= best_disp <= max_window:
                 enc = ((best_len - 3) << 12) | (best_disp - 1)
                 out.append((enc >> 8) & 0xFF)

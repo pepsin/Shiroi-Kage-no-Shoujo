@@ -16,6 +16,7 @@ Usage:
                    --out out.gba [--report-only]
 """
 import argparse
+import time
 import csv
 import os
 import struct
@@ -28,6 +29,9 @@ import export_script as ex
 import lz77
 
 TEXTDIR = os.path.join(ROOT, 'data')
+
+
+APPEND_GUARD = 32          # zero bytes after each appended entry
 
 
 def load_maps(path=None):
@@ -205,25 +209,36 @@ def main():
     rom = bytearray(open(a.rom, 'rb').read())
     nfit = napp = 0
     miss_total = 0
-    for eid in sorted(set(todo) | set(pool)):
+    eids = sorted(set(todo) | set(pool))
+    t_start = time.time()
+    print(f'importing {len(eids)} entries (table rows for {len(todo)}, '
+          f'pool rows for {len(pool)}); progress below', flush=True)
+    for n_done, eid in enumerate(eids, 1):
+        t_entry = time.time()
         d = g.load_entry(bytes(rom), eid)
         if d is None:
-            print(f'e{eid:04d}: missing'); continue
+            print(f'  [{n_done}/{len(eids)}] e{eid:04d}: missing'); continue
         nd, too_long = d, []
         if eid in todo:
             nd, err, tl = rebuild_entry(nd, todo[eid], rev, kind)
             if nd is None:
-                print(f'e{eid:04d}: {err}'); continue
+                print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {err}'); continue
             too_long += tl
         if eid in pool:
             nd, err, tl = rebuild_pool_entry(nd, pool[eid], rev)
             if nd is None:
-                print(f'e{eid:04d}: {err}'); continue
+                print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {err}'); continue
             too_long += tl
-        if too_long:
-            print(f'e{eid:04d}: {len(too_long)} strings skipped, e.g. {too_long[:2]}')
+        n_skip = len(too_long)
         enc = lz77.compress(nd)
         off, size = struct.unpack_from('<2I', rom, g.FAT + eid * 8)
+        if len(enc) <= size:
+            where = 'in place'
+        else:
+            where = 'appended'
+        if n_skip:
+            print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {n_skip} strings skipped, '
+                  f'e.g. {too_long[:2]}')
         if len(enc) <= size:
             rom[g.BASE + off:g.BASE + off + len(enc)] = enc
             struct.pack_into('<I', rom, g.FAT + eid * 8 + 4, len(enc))
@@ -231,9 +246,23 @@ def main():
         else:
             new_off = len(rom) - g.BASE
             rom += enc
+            # The game reads a little past the end of an entry's compressed
+            # data.  In the JP ROM the next entry's bytes sit there (harmless);
+            # for an appended entry it would be our next entry's data, and a
+            # stray read out of that killed the game (EWRAM wiped to zero,
+            # DISPCNT forced blank).  A small zero guard keeps it benign.
+            rom += b'\x00' * APPEND_GUARD
             struct.pack_into('<II', rom, g.FAT + eid * 8, new_off, len(enc))
             napp += 1
-    print(f'entries patched in place: {nfit}; appended: {napp}; unmapped chars: {miss_total}')
+        dt = time.time() - t_entry
+        detail = f'{len(d):6d} -> {len(enc):6d} bytes {where:8s}'
+        if n_skip:
+            detail += f' ({n_skip} skipped)'
+        slow = '  <-- slow' if dt > 2.0 else ''
+        print(f'  [{n_done:3d}/{len(eids)}] e{eid:04d} {detail} '
+              f'{dt:5.2f}s total {time.time() - t_start:6.1f}s{slow}', flush=True)
+    print(f'entries patched in place: {nfit}; appended: {napp}; unmapped chars: {miss_total}; '
+          f'{time.time() - t_start:.1f}s')
     if a.report_only:
         return
     if not a.out:
