@@ -26,13 +26,10 @@ Usage:
 """
 import argparse
 import os
-import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, 'tools'))
-import pixelfont  # noqa: E402
 JP_ROM = os.path.join(ROOT, 'Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba')
 
 # label: box=(x0,y0,x1,y1) half-open, drawn text, original text, ink/AA/fill indices
@@ -53,21 +50,6 @@ BLOCKS = [
     dict(name='menu 消去', segs=[(0x44F9E0, 32, 16, 0, 0), (0x44FAE0, 32, 16, 32, 0)],
          labels=[((8, 2, 36, 12), '删除', '消去', ITEM_INK, ITEM_AA, ITEM_FILL)]),
 ]
-
-# The in-game investigation command menu is pre-rendered the same way: each
-# item is a 64x16 plate built from two 32x16 sprites.  Only the labels that
-# differ in Chinese are listed (person names stay as they are, 推理 is the same).
-CMD_PLATES = [
-    (0x66C400, '抽烟', 'タバコ吸う'),      # smoke
-    (0x66CA00, '周围', '周囲'),            # surroundings
-    (0x66CC00, '查看', '見る'),            # look
-    (0x66CE00, '持有物', '持ち物'),        # belongings
-    (0x66D000, '交谈', '話す'),            # talk
-    (0x66D200, '移动', '移動'),            # move
-    (0x66D600, '搜索', '捜索'),            # search
-    (0x66D800, '搭档', 'パートナー'),      # partner
-]
-CMD_INK, CMD_FILLS = 1, (4, 5, 6, 7)      # dark strokes on a light textured fill
 
 FONTS = [
     '/System/Library/Fonts/STHeiti Medium.ttc',
@@ -158,92 +140,25 @@ def pick_font(text, box, want_h):
     return best[1], best[2], best[3]
 
 
-def _crop_ink(rows):
-    """Trim a bitmap to its ink bounding box."""
-    ys = [j for j, r in enumerate(rows) if any(r)]
-    xs = [i for i in range(len(rows[0])) if any(r[i] for r in rows)]
-    if not ys or not xs:
-        return []
-    return [[rows[j][i] for i in range(min(xs), max(xs) + 1)] for j in range(min(ys), max(ys) + 1)]
-
-
-def _drop_row(rows):
-    """Remove the emptiest row (pixel fonts carry a padding row we can spare)."""
-    best, bi = None, 0
-    for j, r in enumerate(rows):
-        n = sum(r)
-        if best is None or n < best:
-            best, bi = n, j
-    return rows[:bi] + rows[bi + 1:]
-
-
-def _drop_col(rows):
-    w = len(rows[0])
-    best, bi = None, 0
-    for i in range(w):
-        n = sum(r[i] for r in rows)
-        if best is None or n < best:
-            best, bi = n, i
-    return [r[:bi] + r[bi + 1:] for r in rows]
-
-
-def auto_box(img, ink=CMD_INK, fills=CMD_FILLS, pad=1):
-    """Text box of a command plate: the bounding box of its dark strokes."""
-    pts = [(x, y) for y, row in enumerate(img) for x, v in enumerate(row) if v == ink]
-    if not pts:
-        return None
-    xs = [p[0] for p in pts]
-    ys = [p[1] for p in pts]
-    h, w = len(img), len(img[0])
-    x0 = max(0, min(xs) - pad); x1 = min(w, max(xs) + 1 + pad)
-    y0 = max(0, min(ys) - pad); y1 = min(h, max(ys) + 1 + pad)
-    import collections
-    c = collections.Counter(v for row in img for v in row if v in fills)
-    fill = c.most_common(1)[0][0] if c else 7
-    return (x0, y0, x1, y1), fill
-
-
-def draw_label(img, box, text, fill, ink, aa, pixel):
-    """Draw `text` into the box using the 11x11 pixel font, centred.
-
-    An outline font rasterised at ~13px turns into a hatch of anti-aliasing
-    pixels once it is quantised to the plate's two inks -- that is exactly what
-    made the save menu look corrupted.  The pixel font has no such problem: its
-    bitmaps are already 1px strokes, and when a glyph is one row taller than the
-    box we drop the emptiest row (pixel fonts keep a padding row).
-    """
+def draw_label(img, box, text, fill, ink, aa, font):
     x0, y0, x1, y1 = box
-    bw, bh = x1 - x0, y1 - y0
     for y in range(y0, y1):
         for x in range(x0, x1):
             img[y][x] = fill
-    glyphs = []
-    for ch in text:
-        body = pixel.body(ch)          # 16x16 cell, 11x11 design box
-        rows = _crop_ink([r[:] for r in body])
-        if not rows:
-            continue
-        while len(rows) > bh:
-            rows = _drop_row(rows)
-        while len(rows[0]) * len(text) + (len(text) - 1) > bw:
-            rows = _drop_col(rows)
-        glyphs.append(rows)
-    if not glyphs:
-        return
-    gap = 1 if bw >= sum(len(g[0]) for g in glyphs) + len(glyphs) - 1 else 0
-    total = sum(len(g[0]) for g in glyphs) + gap * (len(glyphs) - 1)
-    x = x0 + max(0, (bw - total) // 2)
-    for rows in glyphs:
-        h, w = len(rows), len(rows[0])
-        oy = y0 + max(0, (bh - h) // 2)
-        for j in range(h):
-            for i in range(w):
-                if not rows[j][i]:
-                    continue
-                xx, yy = x + i, oy + j
-                if x0 <= xx < x1 and y0 <= yy < y1:
-                    img[yy][xx] = ink
-        x += w + gap
+    tmp = Image.new('L', (x1 - x0, y1 - y0), 0)
+    d = ImageDraw.Draw(tmp)
+    bb = d.textbbox((0, 0), text, font=font)
+    tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    d.text(((x1 - x0 - tw) // 2 - bb[0], (y1 - y0 - th) // 2 - bb[1]),
+           text, font=font, fill=255)
+    px = tmp.load()
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            v = px[x - x0, y - y0]
+            if v >= (140 if aa is not None else 100):
+                img[y][x] = ink
+            elif aa is not None and v >= 60:
+                img[y][x] = aa
 
 
 def to_png(img, scale=5, bank=None):
@@ -265,34 +180,22 @@ def main():
     ap.add_argument('--rom', default=JP_ROM)
     ap.add_argument('--apply', nargs=2, metavar=('IN', 'OUT'))
     ap.add_argument('--preview', metavar='PNG')
-    ap.add_argument('--pixel-font', default=pixelfont.DEFAULT)
     a = ap.parse_args()
 
-    pixel = pixelfont.load(a.pixel_font)
     src = open(a.rom, 'rb').read()
-    blocks = list(BLOCKS)
-    for off, text, jp in CMD_PLATES:
-        blocks.append(dict(name=f'cmd {jp}',
-                           segs=[(off, 32, 16, 0, 0), (off + 0x100, 32, 16, 32, 0)],
-                           labels=[('auto', text, jp, CMD_INK, None, None)]))
     results = []
-    for blk in blocks:
+    for blk in BLOCKS:
         before, w, h = load_block(src, blk)
         after = [row[:] for row in before]
         for box, text, jp, ink, aa, fill in blk['labels']:
-            if box == 'auto':
-                found = auto_box(after, ink, CMD_FILLS)
-                if not found:
-                    print(f"{blk['name']}: no ink found, skipped")
-                    continue
-                box, fill = found
-            draw_label(after, box, text, fill, ink, aa, pixel)
+            font, path, size = pick_font(text, box, WANT_H[blk['name']])
+            draw_label(after, box, text, fill, ink, aa, font)
             pts = [(x, y) for y in range(len(after)) for x in range(len(after[0]))
-                   if after[y][x] == ink and box[0] <= x < box[2] and box[1] <= y < box[3]]
+                   if after[y][x] in (ink, aa) if box[0] <= x < box[2] and box[1] <= y < box[3]]
             iw = max(p[0] for p in pts) - min(p[0] for p in pts) + 1
             ih = max(p[1] for p in pts) - min(p[1] for p in pts) + 1
-            print(f"{blk['name']}: {jp} -> {text}  box={box} ink={ink} fill={fill} "
-                  f"(drawn {iw}x{ih})")
+            print(f"{blk['name']}: {jp} -> {text}  box={box} ink={ink} aa={aa} fill={fill} "
+                  f"({os.path.basename(path)} {size}px, drawn {iw}x{ih})")
         results.append((blk, w, h, before, after))
 
     if a.preview:
@@ -302,7 +205,7 @@ def main():
         sheet = Image.new('RGB', (width, height), (0, 0, 0))
         y = 0
         for blk, w, h, before, after in results:
-            bank = BANK.get(blk['name'], 15)
+            bank = BANK[blk['name']]
             sheet.paste(to_png(before, scale, bank), (0, y)); y += h * scale
             sheet.paste(to_png(after, scale, bank), (0, y)); y += (h + pad) * scale
         sheet.save(a.preview)
