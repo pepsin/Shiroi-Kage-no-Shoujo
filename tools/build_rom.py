@@ -21,6 +21,7 @@ Usage:
                [--headroom 128] [--no-script]
 """
 import argparse
+import re
 import time
 import collections
 import csv
@@ -45,6 +46,9 @@ ADV_TABLE_OFF = 0x6A4840          # FAT 851: per-glyph advance bytes (JP: 1704 x
 ADV_VALUE = 0x0C                  # the JP value for every glyph
 WORK = os.path.join(ROOT, 'work')
 EXT_MAP = os.path.join(WORK, 'glyph_map.ext.csv')
+# a rebuild normally has no hand-edited glyphs; more than this many differing
+# PNGs means the directory is stale and would revert the render
+GLYPH_EDIT_LIMIT = 200
 
 
 def load_master(path):
@@ -126,6 +130,12 @@ def main():
                          'resources may still use -- off by default)')
     ap.add_argument('--no-script', action='store_true',
                     help='only patch the font table, do not import the script')
+    ap.add_argument('--glyph-dir', default=os.path.join(ROOT, 'data', 'glyph_png'),
+                    help='hand-edited glyph PNGs to apply on top of the render')
+    ap.add_argument('--no-glyph-edits', action='store_true',
+                    help='ignore data/glyph_png hand edits')
+    ap.add_argument('--force-glyph-edits', action='store_true',
+                    help='apply data/glyph_png even if it looks stale')
     a = ap.parse_args()
 
     rom = bytearray(open(a.rom, 'rb').read())
@@ -240,6 +250,32 @@ def main():
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
 
+    # --- apply hand-edited glyph PNGs -------------------------------------
+    # data/glyph_png is the editable view of the font table; without this step
+    # a rebuild would silently revert every glyph the user redrew by hand.
+    if not a.no_glyph_edits and os.path.exists(os.path.join(a.glyph_dir, 'manifest.tsv')):
+        print('[phase] applying hand-edited glyphs', flush=True)
+        imp = [sys.executable, os.path.join(ROOT, 'tools', 'import_glyphs.py'),
+               '--dir', a.glyph_dir]
+        # A freshly rendered font should match the exported PNGs exactly, so
+        # "hand edits" should be just the handful the user touched.  A large
+        # count means the PNG directory was exported from some other ROM and
+        # would revert the render - ask before doing that.
+        chk = subprocess.run(imp + ['--rom', a.out, '--dry-run'],
+                             capture_output=True, text=True)
+        m = re.search(r'hand-edited images: (\d+)', chk.stdout)
+        n_hand = int(m.group(1)) if m else 0
+        if n_hand > GLYPH_EDIT_LIMIT and not a.force_glyph_edits:
+            print(chk.stdout, flush=True)
+            raise SystemExit(
+                f'{n_hand} glyph PNGs in {a.glyph_dir} differ from the font this build '
+                f'rendered (expected only a few hand edits).\n'
+                f'The directory was probably exported from a different ROM; re-export it '
+                f'from a current build, or pass --force-glyph-edits to use it as-is.')
+        cmd = imp + ['--rom', a.out, '--out', a.out]
+        print('running:', ' '.join(cmd[1:]), flush=True)
+        subprocess.run(cmd, check=True)
+
 
     # --- self-checks ------------------------------------------------------
     t_check = time.time()
@@ -248,7 +284,9 @@ def main():
                            a.out])
     rc_writes = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_writes.py'),
                            '--cn', a.out])
-    ok = (rc_verify == 0 and rc_writes == 0)
+    rc_glyphs = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_glyphs.py'),
+                           a.out, '--dir', a.glyph_dir])
+    ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0)
     print(f'=== self-check {"PASSED" if ok else "FAILED"} '
           f'in {time.time() - t_check:.1f}s ===', flush=True)
     if not ok:

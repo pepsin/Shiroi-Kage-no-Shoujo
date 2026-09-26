@@ -1,22 +1,34 @@
 #!/usr/bin/env python3
-"""Export every glyph of a built ROM's font table as one PNG per character.
+"""Export the font table as one PNG per character (hand-editing workflow).
 
-The PNGs are rendered with the game's own text palette, so they show exactly
-what the player sees: ink level 1 = the glyph body (80,80,80), level 2 = the
-1px right-hand drop shadow (104,96,88), 0 = the background (248,248,248).
-The original Japanese font and everything the Chinese build injects both use
-only those two levels, so everything lines up in weight and colour.
+Naming rules — one image per *character*, so you always know which file to edit:
 
-Files are named after the character itself; glyphs appended by the Chinese
-build (index >= 0x6A8) get a "（新）" suffix so they are easy to find.
-Duplicated characters (the same char exists at several indices) and unused
-slots are disambiguated with the glyph index.
+  {char}.png            the canonical slot for that character: the slot the
+                        encoder actually writes (the lowest index holding it)
+  {char}（新）.png       same, for a glyph the Chinese build appended
+                        (index >= 0x6A8), i.e. one the JP font never had
+  重复_{index}.png       a duplicate slot that holds the same character; edits
+                        made to the canonical file are written to these too
+  未使用_{index}.png     a slot with no character assigned
+
+PNGs use the game's own text palette (bg 248, body 80, shadow 104) so they show
+exactly what the player sees.  `manifest.tsv` records file <-> index <-> char,
+plus `role` (canon/dup/unused) and `is_new`.
+
+Stale PNGs from earlier exports are deleted, so the directory always matches
+the current ROM.
+
+Safety check: if a PNG in the output directory differs from the ROM bitmap of
+its slot, that is an un-imported hand edit.  The script then refuses to
+overwrite it and tells you to run import_glyphs.py first (or pass --force).
 
 Usage:
   export_glyphs.py [--rom out.gba] [--map work/glyph_map.ext.csv]
                    [--out data/glyph_png] [--scale 8] [--new-from 0x6A8]
+                   [--force]
 """
 import argparse
+import collections
 import csv
 import os
 import struct
@@ -24,12 +36,14 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
+from import_glyphs import levels_from_image, pack  # noqa: E402  (round-trip check)
 
 FAT = 0x15A000
 BASE = 0x15C000
 FONT_EID = 850
 GLYPH_BYTES = 0x80
 BAD = {'/': '／', ':': '：', '\\': '＼', '\n': '', '\r': '', '\t': ' '}
+RAMP = {0: (248, 248, 248), 1: (80, 80, 80), 2: (104, 96, 88)}
 
 
 def font_table(rom):
@@ -52,9 +66,7 @@ def glyph_pixels(b):
     return px
 
 
-def safe_stem(ch, idx):
-    if not ch or not ch.strip():
-        return f'未使用_{idx:03X}'
+def safe_stem(ch):
     s = ch
     for k, v in BAD.items():
         s = s.replace(k, v)
@@ -68,7 +80,10 @@ def main():
     ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'glyph_png'))
     ap.add_argument('--scale', type=int, default=8)
     ap.add_argument('--new-from', type=lambda s: int(s, 0), default=0x6A8)
-    ap.add_argument('--clean', action='store_true', help='remove existing PNGs first')
+    ap.add_argument('--keep-stale', action='store_true',
+                    help='do not delete PNGs that this run does not write')
+    ap.add_argument('--force', action='store_true',
+                    help='overwrite PNGs that differ from the ROM (un-imported edits)')
     a = ap.parse_args()
 
     from PIL import Image
@@ -77,57 +92,106 @@ def main():
     gmap = {}
     with open(a.map, encoding='utf-8') as f:
         for r in csv.DictReader(f):
-            gmap[int(r['dec'], 0)] = r['char']
+            ch = (r.get('char') or '').strip()
+            if ch:
+                gmap[int(r['dec'], 0)] = ch
+
+    # canonical slot per character = the one the encoder writes = lowest index
+    canon = {}
+    for idx in sorted(gmap):
+        canon.setdefault(gmap[idx], idx)
+
     os.makedirs(a.out, exist_ok=True)
-    if a.clean:
-        for f in os.listdir(a.out):
-            if f.endswith('.png'):
-                os.remove(os.path.join(a.out, f))
-    used = {}
+    written = set()
     rows = []
-    n_new = 0
+    plans = []          # (name, idx, ch, role, px, ink, blk)
+    n_new = n_dup = n_unused = 0
+    canon_px = {}       # a character is drawn once; its slots share one image
     for idx in range(count):
         blk = table[idx * GLYPH_BYTES:(idx + 1) * GLYPH_BYTES]
-        if not blk:
+        if len(blk) < GLYPH_BYTES:
             continue
+        ch = gmap.get(idx, '')
         px = glyph_pixels(blk)
         ink = sum(1 for row in px for v in row if v)
-        ch = gmap.get(idx, '')
-        stem = safe_stem(ch, idx)
-        is_new = idx >= a.new_from and bool(ch.strip()) and ink > 0
-        if is_new:
-            stem += '（新）'
-            n_new += 1
-        # macOS is case-insensitive: 'C.png' and 'c.png' are the same file,
-        # so uniqueness has to be tracked case-folded.
-        key = stem.casefold()
-        n = used.get(key, 0)
-        used[key] = n + 1
-        if n:
-            stem = f'{stem}_{n + 1}'
+        if not ch:
+            role, stem = 'unused', f'未使用_{idx:03X}'
+            n_unused += 1
+        elif canon.get(ch) == idx:
+            is_new = idx >= a.new_from and ink > 0
+            role = 'canon'
+            stem = safe_stem(ch) + ('（新）' if is_new else '')
+            canon_px[ch] = px
+            if is_new:
+                n_new += 1
+        else:
+            role, stem = 'dup', f'重复_{idx:03X}'
+            n_dup += 1
+            # the duplicate slot shows the canonical image, so the directory
+            # stays consistent with the ROM once the edits are imported
+            px = canon_px[ch]
+            ink = sum(1 for row in px for v in row if v)
+        # macOS is case-insensitive, so uniqueness has to be case-folded
         name = f'{stem}.png'
-        # the palette the game uses for text (measured from a text frame)
-        ramp = {0: (248, 248, 248), 1: (80, 80, 80), 2: (104, 96, 88)}
-        img = Image.new('RGB', (16, 16), ramp[0])
+        if name.casefold() in {w.casefold() for w in written}:
+            base, ext = os.path.splitext(name)
+            k = 2
+            while f'{base}_{k}{ext}'.casefold() in {w.casefold() for w in written}:
+                k += 1
+            name = f'{base}_{k}{ext}'
+        written.add(name)
+        plans.append((name, idx, ch, role, px, ink, blk))
+
+    # never silently discard hand edits that were not imported into the ROM yet
+    # (a 重复_* file is a copy of its canonical image, not of its own slot, so
+    # only the files that mirror a slot are compared here)
+    hand = [name for name, idx, ch, role, px, ink, blk in plans
+            if role != 'dup' and os.path.exists(os.path.join(a.out, name))
+            and pack(levels_from_image(os.path.join(a.out, name))) != blk]
+    if hand and not a.force:
+        print(f'{len(hand)} PNG(s) in {a.out} differ from the ROM — hand edits '
+              f'that were never imported back:', file=sys.stderr)
+        for nm in hand[:10]:
+            print(f'  {nm}', file=sys.stderr)
+        if len(hand) > 10:
+            print(f'  ... and {len(hand) - 10} more', file=sys.stderr)
+        print('run tools/import_glyphs.py --out out.gba first, then re-export '
+              '(or pass --force to overwrite them).', file=sys.stderr)
+        raise SystemExit(2)
+
+    for name, idx, ch, role, px, ink, blk in plans:
+        img = Image.new('RGB', (16, 16), RAMP[0])
         p = img.load()
         for y in range(16):
             for x in range(16):
                 v = px[y][x]
                 if v:
-                    p[x, y] = ramp.get(v, (0, 0, 0))
+                    p[x, y] = RAMP.get(v, (0, 0, 0))
         if a.scale != 1:
             img = img.resize((16 * a.scale, 16 * a.scale), Image.NEAREST)
-        # only three colours -> store indexed, ~20x smaller on disk
         img.convert('P', palette=Image.ADAPTIVE, colors=4).save(
             os.path.join(a.out, name), optimize=True)
         rows.append({'file': name, 'index': f'{idx:03X}', 'code': f'{idx + 1:03X}',
-                     'char': ch, 'is_new': int(is_new), 'ink': ink})
+                     'char': ch, 'is_new': int(role == 'canon' and idx >= a.new_from and ink > 0),
+                     'role': role, 'ink': ink})
+
+    if not a.keep_stale:
+        keep = {n.casefold() for n in written} | {'manifest.tsv', 'readme.md'}
+        for f in os.listdir(a.out):
+            if f.lower().endswith('.png') and f.casefold() not in keep:
+                os.remove(os.path.join(a.out, f))
+                print(f'removed stale {f}')
+
     with open(os.path.join(a.out, 'manifest.tsv'), 'w', encoding='utf-8', newline='') as f:
-        w = csv.DictWriter(f, fieldnames=['file', 'index', 'code', 'char', 'is_new', 'ink'],
-                           delimiter='\t')
+        w = csv.DictWriter(f, fieldnames=['file', 'index', 'code', 'char', 'is_new',
+                                          'role', 'ink'], delimiter='\t')
         w.writeheader()
         w.writerows(rows)
-    print(f'exported {len(rows)} glyphs to {a.out}  ({n_new} marked （新）)')
+
+    chars = collections.Counter(r['char'] for r in rows if r['role'] == 'canon')
+    print(f'exported {len(rows)} slots to {a.out}')
+    print(f'  characters with one image each: {len(chars)}  ({n_new} marked （新）)')
+    print(f'  duplicate slots (重复_*): {n_dup};  unused slots (未使用_*): {n_unused}')
 
 
 if __name__ == '__main__':
