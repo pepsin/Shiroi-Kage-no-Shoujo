@@ -72,10 +72,10 @@ def encode_text(text, rev):
             codes.append(0x0000 if kind == 'jp' else 0x000D)
             i += 1
             continue
-        if ch == '\\' and i + 4 < len(text) and text[i + 1] == 'x':
+        if ch == '\\' and i + 6 <= len(text) and text[i + 1] == 'x':
             try:
-                codes.append(int(text[i + 2:i + 5], 16))
-                i += 5
+                codes.append(int(text[i + 2:i + 6], 16))
+                i += 6
                 continue
             except ValueError:
                 pass

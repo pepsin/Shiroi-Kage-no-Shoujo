@@ -83,8 +83,19 @@ def block_span(rom, head=852, max_gap=0x40):
     return block[0][0], block[-1][1], [e for _, _, e in block]
 
 
-def plan(rows, gmap, recycle=False):
-    """Return (assignment, new_chars, table_count, free_used, extra)."""
+def plan(rows, gmap, recycle=False, manifest=None, headroom=0):
+    """Return (assignment, new_chars, table_count, free_used, extra).
+
+    table_count includes `headroom` spare slots at the end.
+
+    Slot assignment for new characters must be STABLE across builds: the
+    hand-edit directory (data/glyph_png) and any in-RAM text saved in player
+    savestates refer to glyph indices, so re-sorting the tail whenever the
+    character set changes corrupts both.  When `manifest` (the previous
+    build's data/glyph_png/manifest.tsv) is available, characters keep their
+    previous slots and genuinely new characters fill slots that were free
+    (未使用 / headroom) before the table grows.
+    """
     rev = {}
     for idx, ch in sorted(gmap.items(), reverse=True):
         code = idx if idx < 0x20 else idx - 1
@@ -92,7 +103,8 @@ def plan(rows, gmap, recycle=False):
             rev.setdefault(ch, code)
     used = collections.Counter()
     for r in rows:
-        for ch in (r.get('translation') or '').strip():
+        # '\xFFF2'-style escapes are raw control codes, not glyphs
+        for ch in re.sub(r'\\x[0-9A-Fa-f]{4}', '', (r.get('translation') or '')).strip():
             used[ch] += 1
     have = set(gmap.values()) - {''}
     used_idx = set()
@@ -108,12 +120,43 @@ def plan(rows, gmap, recycle=False):
         got = new_chars[:len(free)]
         extra = new_chars[len(free):]
         assign = {ch: free[i] for i, ch in enumerate(got)}
-    else:
-        got, extra = [], new_chars
+        table_count = OLD_COUNT + len(extra) + headroom
+        return assign, new_chars, table_count, len(got), extra, used, rev, used_idx
+    prev_assign = {}     # char -> previous slot (new-glyph region only)
+    prev_count = 0
+    if manifest and os.path.exists(manifest):
+        for r in csv.DictReader(open(manifest, encoding='utf-8'), delimiter='\t'):
+            idx = int(r['index'], 16)
+            prev_count = max(prev_count, idx + 1)
+            ch = (r.get('char') or '').strip()
+            if ch and idx >= OLD_COUNT:
+                prev_assign.setdefault(ch, idx)
+    if not prev_assign:
+        extra = new_chars
         assign = {}
+        for i, ch in enumerate(extra):
+            assign[ch] = OLD_COUNT + i
+        table_count = OLD_COUNT + len(extra) + headroom
+        return assign, new_chars, table_count, 0, extra, used, rev, used_idx
+    # stable path: chars keep their old slots; new chars take slots that were
+    # unassigned in the previous build (headroom), then append
+    assign = {ch: prev_assign[ch] for ch in new_chars if ch in prev_assign}
+    # note: slots of dropped characters are NOT reused -- their manifest rows
+    # still carry the old bitmap, and reusing them would let the stale PNG
+    # overwrite the fresh render
+    free_slots = [i for i in range(OLD_COUNT, prev_count)
+                  if i not in set(prev_assign.values())]
+    really_new = [ch for ch in new_chars if ch not in prev_assign]
+    got = really_new[:len(free_slots)]
+    for ch, slot in zip(got, free_slots):
+        assign[ch] = slot
+    extra = really_new[len(free_slots):]
+    top = max(prev_count, OLD_COUNT)
     for i, ch in enumerate(extra):
-        assign[ch] = OLD_COUNT + i
-    table_count = OLD_COUNT + len(extra)
+        assign[ch] = top + i
+    # prev_count already includes the previous build's headroom; only grow
+    # (and re-add headroom) when the overflow spilled past the old table end
+    table_count = max(prev_count, top + len(extra) + (headroom if extra else 0))
     return assign, new_chars, table_count, len(got), extra, used, rev, used_idx
 
 
@@ -147,8 +190,9 @@ def main():
     rom = bytearray(open(a.rom, 'rb').read())
     gmap = mapio.load_map(os.path.join(ROOT, 'data', 'glyph_map.csv'))
     rows = load_master(a.master)
-    assign, new_chars, count, recycled, extra, used, rev, used_idx = plan(rows, gmap, a.recycle)
-    count += a.headroom
+    assign, new_chars, count, recycled, extra, used, rev, used_idx = plan(
+        rows, gmap, a.recycle, headroom=a.headroom,
+        manifest=None if a.recycle else os.path.join(a.glyph_dir, 'manifest.tsv'))
     print(f'distinct chars in translation : {len(used)}')
     print(f'  reuse JP glyph slots        : {len(used) - len(new_chars)}')
     print(f'  new glyphs                  : {len(new_chars)}')
@@ -279,7 +323,7 @@ def main():
     if not a.no_glyph_edits and os.path.exists(os.path.join(a.glyph_dir, 'manifest.tsv')):
         print('[phase] applying hand-edited glyphs', flush=True)
         imp = [sys.executable, os.path.join(ROOT, 'tools', 'import_glyphs.py'),
-               '--dir', a.glyph_dir]
+               '--dir', a.glyph_dir, '--skip-unused']
         # A freshly rendered font should match the exported PNGs exactly, so
         # "hand edits" should be just the handful the user touched.  A large
         # count means the PNG directory was exported from some other ROM and
@@ -296,6 +340,18 @@ def main():
                 f'The directory was probably exported from a different ROM; re-export it '
                 f'from a current build, or pass --force-glyph-edits to use it as-is.')
         cmd = imp + ['--rom', a.out, '--out', a.out]
+        print('running:', ' '.join(cmd[1:]), flush=True)
+        subprocess.run(cmd, check=True)
+
+        # --- re-export the editable view ---------------------------------
+        # A newly needed character can land in a slot the previous export
+        # labelled `未使用`; that stale blank PNG is deliberately NOT imported
+        # (--skip-unused), so the directory no longer mirrors the ROM and the
+        # glyph self-check would flag it.  Re-export from the ROM we just
+        # wrote: every hand edit has been imported by now, so --force only
+        # discards the stale blanks.
+        cmd = [sys.executable, os.path.join(ROOT, 'tools', 'export_glyphs.py'),
+               '--rom', a.out, '--out', a.glyph_dir, '--map', EXT_MAP, '--force']
         print('running:', ' '.join(cmd[1:]), flush=True)
         subprocess.run(cmd, check=True)
 

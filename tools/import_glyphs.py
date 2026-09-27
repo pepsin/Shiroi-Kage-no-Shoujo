@@ -101,6 +101,11 @@ def main():
     ap.add_argument('--only-new', action='store_true')
     ap.add_argument('--autoshadow', action='store_true')
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--skip-unused', action='store_true',
+                    help='do not write the 未使用_*.png (blank) slots; used by '
+                         'build_rom so a freshly rendered glyph that moved into '
+                         'a previously-unused slot is not erased by its stale '
+                         'blank PNG')
     a = ap.parse_args()
     rom = bytearray(open(a.rom, 'rb').read())
     off, size = struct.unpack_from('<2I', rom, FAT + FONT_EID * 8)
@@ -151,7 +156,7 @@ def main():
             n_slots += 1
     n_solo = 0
     for r in solo:
-        if a.only_new:
+        if a.only_new or a.skip_unused:
             continue
         path = os.path.join(a.dir, r['file'])
         if not os.path.exists(path):

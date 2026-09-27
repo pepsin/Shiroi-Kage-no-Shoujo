@@ -18,6 +18,7 @@ import argparse
 import collections
 import csv
 import os
+import re
 import struct
 import sys
 
@@ -30,6 +31,11 @@ FAT = 0x15A000
 BASE = 0x15C000
 FONT_EID = 850
 GLYPH_BYTES = 0x80
+
+# The JP font's slot 0x00A is transcribed as `□` and its bitmap is empty: the
+# game uses it as a blank spacer (hidden digits such as `4□才`, `午後8時5□分`),
+# so a blank bitmap is the correct, intentional result for this character.
+BLANK_OK = {'□'}
 
 
 def main():
@@ -63,10 +69,12 @@ def main():
     used = set()
     with open(a.master, encoding='utf-8') as f:
         for r in csv.DictReader(f, delimiter='\t'):
-            t = (r.get('translation') or '').replace('\\n', '\n')
+            # '\xFFF2'-style escapes are raw control codes, not glyphs
+            t = re.sub(r'\\x[0-9A-Fa-f]{4}', '', r.get('translation') or '').replace('\\n', '\n')
             used |= set(t)
     blank = sorted(c for c in used
-                   if c in canon_idx and not any(slot(canon_idx[c])))
+                   if c in canon_idx and not any(slot(canon_idx[c]))
+                   and c not in BLANK_OK)
     no_glyph = sorted(c for c in used if c not in canon_idx)
     print(f'A  characters used in the script: {len(used)}; '
           f'without a slot: {len(no_glyph)}; mapped to a blank glyph: {len(blank)}')

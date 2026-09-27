@@ -12,6 +12,7 @@ Usage:
 import argparse
 import csv
 import os
+import re
 import struct
 import sys
 
@@ -22,9 +23,22 @@ import gbtext as g
 import export_script as ex
 import mapio
 
-# the JP-only tools cap codes at the original table size; the Chinese build
-# appends glyphs past it, so widen the accepted range before analysing.
-ex.GLYPH_MAX = 0x2000
+# The JP-only tools cap codes at the original table size; the Chinese build
+# appends glyphs past it, so widen the accepted range before analysing.  The
+# cap must clear the raw control codes as well (0xFE02/0xFFC2/0xFFF2 ...):
+# read_string() rejects any code above it, which made every control-code
+# string look untranslated ("got None").
+ex.GLYPH_MAX = 0x10000
+
+# Codes at or above this are text-engine control codes, never glyphs.
+CTRL_MIN = 0xFE00
+
+
+def norm_tr(t):
+    r"""Translations may embed raw control codes as \xXXXX escapes (e.g. the
+    \xFFF2/\xFFF3 name-highlight pair in e314 memo strings); the ROM side
+    decodes them as [FFF2].  Normalize the translation to the same shape."""
+    return re.sub(r'\\x([0-9A-Fa-f]{4})', lambda m: '[' + m.group(1).upper() + ']', t)
 
 FAT = 0x15A000
 BASE = 0x15C000
@@ -62,9 +76,9 @@ def main():
             continue
         eid = int(r['entry'])
         if (r.get('extra') or [''])[0] == 'pool':
-            want_pool.setdefault(eid, {})[int(r['offset'])] = (tr, int(r['n_codes']) + 1)
+            want_pool.setdefault(eid, {})[int(r['offset'])] = (norm_tr(tr), int(r['n_codes']) + 1)
         else:
-            want.setdefault(eid, {})[int(r['idx'])] = tr
+            want.setdefault(eid, {})[int(r['idx'])] = norm_tr(tr)
 
     # --- font table sanity ------------------------------------------------
     off, size = struct.unpack_from('<2I', rom, FAT + FONT_EID * 8)
@@ -103,7 +117,7 @@ def main():
                 continue
             used_codes.update(struct.unpack_from(f'<{n}H', d, o))
     missing = sorted(c for c in used_codes
-                     if c not in (0, 0x0D, 0x0E) and c not in table)
+                     if c not in (0, 0x0D, 0x0E) and c < CTRL_MIN and c not in table)
     print(f'codes referenced by the script: {len(used_codes)}; without a glyph: {len(missing)}')
     if missing:
         print('  e.g.', [hex(c) for c in missing[:10]])
