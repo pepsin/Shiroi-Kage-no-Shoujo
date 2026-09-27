@@ -207,6 +207,20 @@ def main():
         print('nothing to import (translation column empty)')
         return
     rom = bytearray(open(a.rom, 'rb').read())
+    # Free space per entry = the distance to the next FAT entry in file order.
+    # Some code paths read an entry from its ORIGINAL hard-coded ROM address
+    # instead of through the FAT (e.g. the in-game status bar's scene name),
+    # so an entry that has to grow should still be rewritten *in place* when the
+    # following gap can take it - otherwise the hard-coded reader keeps seeing
+    # the old (Japanese) bytes.
+    _ents = []
+    for _e in range(1500):
+        _o, _s = struct.unpack_from('<2I', rom, g.FAT + _e * 8)
+        if _o or _s:
+            _ents.append((_o, _e))
+    _ents.sort()
+    nxt_off = {_e: (_ents[i + 1][0] if i + 1 < len(_ents) else None)
+               for i, (_o, _e) in enumerate(_ents)}
     nfit = napp = 0
     miss_total = 0
     eids = sorted(set(todo) | set(pool))
@@ -239,9 +253,12 @@ def main():
         if n_skip:
             print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {n_skip} strings skipped, '
                   f'e.g. {too_long[:2]}')
-        if len(enc) <= size:
+        gap = None
+        if nxt_off.get(eid) is not None:
+            gap = nxt_off[eid] - off          # bytes before the next entry
+        if len(enc) <= size or (gap is not None and len(enc) <= gap):
             rom[g.BASE + off:g.BASE + off + len(enc)] = enc
-            struct.pack_into('<I', rom, g.FAT + eid * 8 + 4, len(enc))
+            struct.pack_into('<II', rom, g.FAT + eid * 8, off, len(enc))
             nfit += 1
         else:
             # The game decompresses entries with the BIOS LZ77 SWI, whose
