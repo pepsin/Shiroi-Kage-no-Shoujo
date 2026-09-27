@@ -44,6 +44,11 @@ BENIGN = [(0x44BF60, 0x44BF60 + 576), (0x44C1A0, 0x44C1A0 + 576),
           (0x66CC00, 0x66CC00 + 512), (0x66CE00, 0x66CE00 + 512),
           (0x66D000, 0x66D000 + 512), (0x66D200, 0x66D200 + 512),
           (0x66D600, 0x66D600 + 512), (0x66D800, 0x66D800 + 512),
+          # the same 11 items a second time (light variant), 0x66DC40 + n*0x200
+          (0x66DC40, 0x66DC40 + 512), (0x66E240, 0x66E240 + 512),
+          (0x66E440, 0x66E440 + 512), (0x66E640, 0x66E640 + 512),
+          (0x66E840, 0x66E840 + 512), (0x66EA40, 0x66EA40 + 512),
+          (0x66EE40, 0x66EE40 + 512), (0x66F040, 0x66F040 + 512),
           # the relocated e852..e1006 block: moved as a whole and its internal
           # absolute self-references rewritten (see build_rom.py)
           (0x864080, 0x98E1B0)]

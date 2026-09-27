@@ -67,7 +67,15 @@ CMD_PLATES = [
     (0x66D600, '搜索', '捜索'),            # search
     (0x66D800, '搭档', 'パートナー'),      # partner
 ]
+# The same 11 items exist a SECOND time, 0x66DC40 + n*0x200, drawn as the
+# light (highlighted) variant.  The game swaps between the two sets depending
+# on the screen, so both have to be redrawn - patching only the first left the
+# in-game top-left action label (`タバコを吸う`) and the highlighted menu in
+# Japanese.
+CMD_PLATES_ALT = [(off + 0x1840, text, jp) for off, text, jp in CMD_PLATES]
+
 CMD_INK, CMD_FILLS = 1, (4, 5, 6, 7)      # dark strokes on a light textured fill
+ALT_INK, ALT_FILLS = 9, (10, 11, 12, 13, 14, 15)   # light variant's palette
 
 FONTS = [
     '/System/Library/Fonts/STHeiti Medium.ttc',
@@ -282,14 +290,22 @@ def main():
     for off, text, jp in CMD_PLATES:
         blocks.append(dict(name=f'cmd {jp}',
                            segs=[(off, 32, 16, 0, 0), (off + 0x100, 32, 16, 32, 0)],
-                           labels=[('auto', text, jp, CMD_INK, None, None)]))
+                           labels=[('auto', text, jp, CMD_INK, None, None)],
+                           fills=CMD_FILLS))
+    for off, text, jp in CMD_PLATES_ALT:
+        # the light variant draws its label with index 9 (same scheme as the
+        # title-menu plates), so the ink/fill set differs from CMD_PLATES
+        blocks.append(dict(name=f'cmd-alt {jp}',
+                           segs=[(off, 32, 16, 0, 0), (off + 0x100, 32, 16, 32, 0)],
+                           labels=[('auto', text, jp, ALT_INK, None, None)],
+                           fills=ALT_FILLS))
     results = []
     for blk in blocks:
         before, w, h = load_block(src, blk)
         after = [row[:] for row in before]
         for box, text, jp, ink, aa, fill in blk['labels']:
             if box == 'auto':
-                found = auto_box(after, ink, CMD_FILLS)
+                found = auto_box(after, ink, blk.get('fills', CMD_FILLS))
                 if not found:
                     print(f"{blk['name']}: no ink found, skipped")
                     continue
