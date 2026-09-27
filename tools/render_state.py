@@ -135,8 +135,12 @@ def render_obj(reg):
         w, h = DIMS.get(shape, {}).get(size, (8, 8))
         if (a0 >> 8) & 3 == 3:          # affine sprite: skip (game uses normal)
             continue
-        tile = a1 & 0x3FF
-        bank = (a3 >> 12) & 0xF
+        # OAM attribute 2 holds tile (0-9), priority (10-11) and OBJ palette
+        # bank (12-15); attribute 1 holds X in its low 9 bits.  Reading the
+        # tile out of attribute 1 silently returns the X coordinate instead,
+        # which makes every sprite look empty.
+        tile = a2 & 0x3FF
+        bank = (a2 >> 12) & 0xF
         hf, vf = bool(a1 & 0x1000), bool(a1 & 0x2000)
         tiles_across = w // 8
         n = (w // 8) * (h // 8)
