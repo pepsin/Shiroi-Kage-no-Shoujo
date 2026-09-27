@@ -400,6 +400,11 @@ int main(int argc, char** argv) {
 			fflush(stderr);
 		}
 	}
+	/* The frontends autoload the cartridge save after the ROM; without this
+	 * the harness runs with a blank save and every save/load screen is empty. */
+	if (getenv("GBARUN_NO_AUTOSAVE") || !mCoreAutoloadSave(core)) {
+		fprintf(stderr, "[save] no save file loaded\n");
+	}
 	core->reset(core);
 	TRACE("reset");
 	{

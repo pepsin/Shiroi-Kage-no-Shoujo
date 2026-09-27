@@ -244,6 +244,16 @@ def main():
             struct.pack_into('<I', rom, g.FAT + eid * 8 + 4, len(enc))
             nfit += 1
         else:
+            # The game decompresses entries with the BIOS LZ77 SWI, whose
+            # source pointer must be **word aligned**.  The original ROM keeps
+            # every entry aligned (the ones that are not are never passed to
+            # the SWI); appending at an arbitrary offset silently broke that
+            # contract - e.g. the scene-name table e417 ended up at 0xBEC5D6
+            # (mod 4 == 2), the game failed to decompress it, the notebook /
+            # save-screen name line then drew an uninitialised VRAM buffer and
+            # showed the "flower" garble.
+            while len(rom) % 4:
+                rom.append(0)
             new_off = len(rom) - g.BASE
             rom += enc
             # The game reads a little past the end of an entry's compressed

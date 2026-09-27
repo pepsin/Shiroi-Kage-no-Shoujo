@@ -100,6 +100,13 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
+	/* The frontends call this after loading a ROM; without it the harness runs
+	 * with an empty cartridge save and every save/load screen shows no files. */
+	if (!getenv("GBARUN_NO_AUTOSAVE") && mCoreAutoloadSave(core)) {
+		fprintf(stderr, "[save] autoloaded\n");
+	} else {
+		fprintf(stderr, "[save] no save file loaded\n");
+	}
 	{
 		const char* force = getenv("GBARUN_FORCE_SAVE");
 		if (force) {
