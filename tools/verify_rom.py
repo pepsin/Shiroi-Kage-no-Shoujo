@@ -166,8 +166,12 @@ def main():
     print(f'round-trip (table + pool): {ok} strings match, {bad} differ')
     for s in samples:
         print('  ', s)
-    print('RESULT:', 'OK' if (bad == 0 and not missing) else 'PROBLEM')
+    good = (bad == 0 and not missing)
+    print('RESULT:', 'OK' if good else 'PROBLEM')
+    # The build's self-check reads this exit code, so a mismatch has to fail the
+    # build instead of only printing PROBLEM.
+    return 0 if good else 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
