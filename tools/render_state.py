@@ -74,7 +74,10 @@ def render_bg(reg, bg, only):
     scr_base = ((cnt >> 8) & 0x1F) * 0x800
     size = (cnt >> 14) & 3
     bpp8 = bool(cnt & 0x80)
-    hofs, vofs = struct.unpack_from('<HH', io, 0x10 + 2 * bg)
+    # BGxHOFS/BGxVOFS are 4 bytes apart (two 16-bit registers per BG), unlike
+    # BGxCNT which is 2 bytes apart.  Reading them at 0x10 + 2*bg silently
+    # returns the previous background's scroll for bg >= 1.
+    hofs, vofs = struct.unpack_from('<HH', io, 0x10 + 4 * bg)
     hofs &= 0x1FF
     vofs &= 0x1FF
     w_tiles = 32 if size in (0, 1) else 64

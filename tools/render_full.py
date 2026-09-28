@@ -83,8 +83,9 @@ def main():
             size = (cnt >> 14) & 3
             w_tiles = 32 if size in (0, 1) else 64
             h_tiles = 32 if size in (0, 2) else 64
-            hofs = struct.unpack_from('<H', io, 0x10 + 2 * bg)[0] & 0x1FF
-            vofs = struct.unpack_from('<H', io, 0x12 + 2 * bg)[0] & 0x1FF
+            # BGxHOFS/VOFS are 4 bytes apart, BGxCNT 2 - see render_state.py
+            hofs = struct.unpack_from('<H', io, 0x10 + 4 * bg)[0] & 0x1FF
+            vofs = struct.unpack_from('<H', io, 0x12 + 4 * bg)[0] & 0x1FF
             for sy in range(H):
                 my = (sy + vofs) % (h_tiles * 8)
                 ty = my // 8

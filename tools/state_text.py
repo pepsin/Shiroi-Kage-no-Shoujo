@@ -66,7 +66,10 @@ def main():
         cnt = struct.unpack_from('<H', io, 8 + 2 * bg)[0]
         char_base = ((cnt >> 2) & 3) * 0x4000
         scr_base = ((cnt >> 8) & 0x1F) * 0x800
-        hofs, vofs = struct.unpack_from('<HH', io, 0x10 + 2 * bg)
+        # BGxHOFS/BGxVOFS are 4 bytes apart (HOFS+VOFS per BG), not 2 - see
+        # render_state.py; at 0x10 + 2*bg this silently reads the previous
+        # background's scroll for bg >= 1.
+        hofs, vofs = struct.unpack_from('<HH', io, 0x10 + 4 * bg)
         hofs &= 0x1FF
         vofs &= 0x1FF
         print(f'--- BG{bg} char_base=0x{char_base:05X} scr_base=0x{scr_base:05X} '
