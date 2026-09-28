@@ -21,6 +21,7 @@ import os
 import re
 import struct
 import sys
+import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
@@ -102,17 +103,28 @@ def main():
         if len(rows) != count:
             problems.append(f'manifest has {len(rows)} rows, font table has {count} slots')
 
+        # The directory may spell a name decomposed even though the manifest
+        # holds the composed form (macOS stores what the creating volume used;
+        # see export_glyphs.py).  Resolve through an NFC-normalised index so a
+        # present-but-differently-spelled file is not reported as missing.
+        on_disk_names = {unicodedata.normalize('NFC', f): f
+                         for f in os.listdir(a.dir) if f.lower().endswith('.png')}
+
+        def disk_path(name):
+            actual = on_disk_names.get(unicodedata.normalize('NFC', name))
+            return os.path.join(a.dir, actual) if actual else None
+
         edited = dup_bad = 0
         canon_png = {}
         for r in rows:
             if r['role'] != 'canon':
                 continue
-            p = os.path.join(a.dir, r['file'])
-            if os.path.exists(p):
+            p = disk_path(r['file'])
+            if p:
                 canon_png[r['char']] = pack(levels_from_image(p))
         for r in rows:
-            p = os.path.join(a.dir, r['file'])
-            if not os.path.exists(p):
+            p = disk_path(r['file'])
+            if not p:
                 problems.append(f'missing PNG: {r["file"]}')
                 continue
             got = pack(levels_from_image(p))
@@ -122,8 +134,8 @@ def main():
                     dup_bad += 1
             elif got != slot(int(r['index'], 16)):
                 edited += 1
-        on_disk = {f.casefold() for f in os.listdir(a.dir) if f.lower().endswith('.png')}
-        listed = {r['file'].casefold() for r in rows}
+        on_disk = {f.casefold() for f in on_disk_names}
+        listed = {unicodedata.normalize('NFC', r['file']).casefold() for r in rows}
         stale = len(on_disk - listed)
         print(f'C  PNGs out of sync with the ROM: {edited}; '
               f'duplicate-slot PNGs not matching their character: {dup_bad}; '

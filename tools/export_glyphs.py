@@ -33,6 +33,7 @@ import csv
 import os
 import struct
 import sys
+import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
@@ -176,9 +177,18 @@ def main():
                      'role': role, 'ink': ink})
 
     if not a.keep_stale:
-        keep = {n.casefold() for n in written} | {'manifest.tsv', 'readme.md'}
+        # Names are compared after NFC normalisation.  A volume that stores a
+        # name in decomposed form (macOS HFS+ always did, and an APFS file
+        # created on one keeps that spelling) returns e.g. 'が' as 'か'+U+3099
+        # from listdir, while `written` holds the composed 'が'; a raw string
+        # compare then deletes a file that was just written.  That silently
+        # dropped all 46 dakuten kana glyphs on every rebuild.
+        keep = {unicodedata.normalize('NFC', n).casefold() for n in written}
+        keep |= {'manifest.tsv', 'readme.md'}
         for f in os.listdir(a.out):
-            if f.lower().endswith('.png') and f.casefold() not in keep:
+            if not f.lower().endswith('.png'):
+                continue
+            if unicodedata.normalize('NFC', f).casefold() not in keep:
                 os.remove(os.path.join(a.out, f))
                 print(f'removed stale {f}')
 
