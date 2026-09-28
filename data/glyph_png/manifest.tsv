@@ -2536,7 +2536,7 @@ e_2.png	03F	040	e	0	canon	33
 彬（新）.png	9E6	9E7	彬	1	canon	81
 恕（新）.png	9E7	9E8	恕	1	canon	91
 愣（新）.png	9E8	9E9	愣	1	canon	96
-慧（新）.png	9E9	9EA	慧	1	canon	81
+拗（新）.png	9E9	9EA	拗	1	canon	99
 抚（新）.png	9EA	9EB	抚	1	canon	73
 拨（新）.png	9EB	9EC	拨	1	canon	85
 捷（新）.png	9EC	9ED	捷	1	canon	90
@@ -2606,7 +2606,7 @@ t（新）.png	A11	A12	t	1	canon	22
 歇（新）.png	A2C	A2D	歇	1	canon	93
 泻（新）.png	A2D	A2E	泻	1	canon	67
 浇（新）.png	A2E	A2F	浇	1	canon	73
-涤（新）.png	A2F	A30	涤	1	canon	71
+未使用_A2F.png	A2F	A30		0	unused	0
 淆（新）.png	A30	A31	淆	1	canon	74
 溅（新）.png	A31	A32	溅	1	canon	94
 潢（新）.png	A32	A33	潢	1	canon	84
@@ -2643,7 +2643,7 @@ t（新）.png	A11	A12	t	1	canon	22
 饶（新）.png	A51	A52	饶	1	canon	75
 鳕（新）.png	A52	A53	鳕	1	canon	96
 a（新）.png	A53	A54	a	1	canon	27
-h（新）.png	A54	A55	h	1	canon	33
+狈（新）.png	A54	A55	狈	1	canon	89
 倦（新）.png	A55	A56	倦	1	canon	85
 劫（新）.png	A56	A57	劫	1	canon	81
 占（新）.png	A57	A58	占	1	canon	50
@@ -2805,7 +2805,7 @@ k（新）.png	AB5	AB6	k	1	canon	31
 汹（新）.png	AF3	AF4	汹	1	canon	85
 泪（新）.png	AF4	AF5	泪	1	canon	76
 泽（新）.png	AF5	AF6	泽	1	canon	67
-渴（新）.png	AF6	AF7	渴	1	canon	78
+未使用_AF6.png	AF6	AF7		0	unused	0
 炫（新）.png	AF7	AF8	炫	1	canon	76
 炮（新）.png	AF8	AF9	炮	1	canon	92
 熬（新）.png	AF9	AFA	熬	1	canon	79
@@ -2936,7 +2936,7 @@ v（新）.png	B2B	B2C	v	1	canon	24
 掺（新）.png	B76	B77	掺	1	canon	77
 揉（新）.png	B77	B78	揉	1	canon	82
 揣（新）.png	B78	B79	揣	1	canon	97
-摊（新）.png	B79	B7A	摊	1	canon	110
+未使用_B79.png	B79	B7A		0	unused	0
 摔（新）.png	B7A	B7B	摔	1	canon	81
 攀（新）.png	B7B	B7C	攀	1	canon	97
 政（新）.png	B7C	B7D	政	1	canon	79
@@ -3075,7 +3075,7 @@ v（新）.png	B2B	B2C	v	1	canon	24
 鳞（新）.png	C01	C02	鳞	1	canon	97
 哔（新）.png	C02	C03	哔	1	canon	84
 桑（新）.png	C03	C04	桑	1	canon	89
-未使用_C04.png	C04	C05		0	unused	0
+翼（新）.png	C04	C05	翼	1	canon	94
 未使用_C05.png	C05	C06		0	unused	0
 未使用_C06.png	C06	C07		0	unused	0
 未使用_C07.png	C07	C08		0	unused	0
