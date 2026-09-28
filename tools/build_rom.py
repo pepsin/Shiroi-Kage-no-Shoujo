@@ -317,6 +317,16 @@ def main():
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
 
+    # --- translate the opening disclaimer page ----------------------------
+    # That screen is not font text, so it never reaches translation.tsv: it is a
+    # pre-rendered LZ77 blob reached through e840's resource table.  The tool
+    # rewrites the blob (Chinese lines + a credit footer) and keeps the table
+    # entry in sync, writing in place whenever the new stream is small enough.
+    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
+           a.out, '--apply']
+    print('running:', ' '.join(cmd[1:]))
+    subprocess.run(cmd, check=True)
+
     # --- apply hand-edited glyph PNGs -------------------------------------
     # data/glyph_png is the editable view of the font table; without this step
     # a rebuild would silently revert every glyph the user redrew by hand.
@@ -365,7 +375,10 @@ def main():
                            '--cn', a.out])
     rc_glyphs = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_glyphs.py'),
                            a.out, '--dir', a.glyph_dir])
-    ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0)
+    rc_page = run_check([sys.executable,
+                         os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
+                         a.out, '--check'])
+    ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0 and rc_page == 0)
     print(f'=== self-check {"PASSED" if ok else "FAILED"} '
           f'in {time.time() - t_check:.1f}s ===', flush=True)
     if not ok:
