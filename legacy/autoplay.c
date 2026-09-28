@@ -261,15 +261,21 @@ int main(int argc, char** argv) {
 			if (bv && g_core->loadBIOS(g_core, bv, 0)) fprintf(stderr, "[bios] loaded\n");
 		}
 	}
-	if (!getenv("GBARUN_NO_AUTOSAVE") && mCoreAutoloadSave(g_core)) {
-		fprintf(stderr, "[save] autoloaded\n");
-	}
+	/* The save type has to be settled *before* the .sav is autoloaded: mGBA
+	 * sizes the save buffer from the type, and forcing it afterwards
+	 * reallocates the buffer and throws the loaded data away.  A game without
+	 * a save-type signature in its header (this one included) therefore needs
+	 * GBARUN_FORCE_SAVE=N (4 = EEPROM, 5 = EEPROM512, 1 = SRAM, ...). */
 	{
 		const char* force = getenv("GBARUN_FORCE_SAVE");
 		if (force) {
 			g_gba = g_core->board;
 			GBASavedataForceType(&g_gba->memory.savedata, (enum SavedataType) atoi(force));
+			fprintf(stderr, "[save] type forced to %s\n", force);
 		}
+	}
+	if (!getenv("GBARUN_NO_AUTOSAVE") && mCoreAutoloadSave(g_core)) {
+		fprintf(stderr, "[save] autoloaded\n");
 	}
 
 	g_gba = g_core->board;
@@ -370,6 +376,26 @@ int main(int argc, char** argv) {
 	{
 		const char* sv = getenv("GBARUN_SAVE");
 		if (sv && *sv) fprintf(stderr, "[state] %s %s\n", saveState(sv) ? "wrote" : "FAILED", sv);
+	}
+	{
+		/* GBARUN_DUMP_SAVE=<file>: write the cartridge save memory out.  This is
+		 * how a save the game itself wrote gets captured - mGBA only flushes a
+		 * .sav through a frontend, and the harness has none. */
+		const char* dp = getenv("GBARUN_DUMP_SAVE");
+		if (dp && *dp) {
+			struct GBASavedata* sd = &g_gba->memory.savedata;
+			unsigned sz = (sd->type == SAVEDATA_EEPROM) ? 8192 :
+			              (sd->type == SAVEDATA_FLASH512) ? 65536 :
+			              (sd->type == SAVEDATA_FLASH1M) ? 131072 : 32768;
+			FILE* f = fopen(dp, "wb");
+			if (f && sd->data) {
+				fwrite(sd->data, 1, sz, f);
+				fprintf(stderr, "[save] dumped %u bytes (type %d) to %s\n", sz, sd->type, dp);
+			} else {
+				fprintf(stderr, "[save] dump FAILED (%s)\n", dp);
+			}
+			if (f) fclose(f);
+		}
 	}
 	g_core->deinit(g_core);
 	return 0;

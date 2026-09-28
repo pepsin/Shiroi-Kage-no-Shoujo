@@ -100,19 +100,23 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
+	/* Force the save type BEFORE autoloading: mGBA sizes the save buffer from
+	 * the type, so forcing it after the load reallocates the buffer and drops
+	 * the data.  Needed for games with no save-type signature in the header. */
+	{
+		const char* force = getenv("GBARUN_FORCE_SAVE");
+		if (force) {
+			struct GBA* g0 = core->board;
+			GBASavedataForceType(&g0->memory.savedata, (enum SavedataType) atoi(force));
+			fprintf(stderr, "[save] type forced to %s\n", force);
+		}
+	}
 	/* The frontends call this after loading a ROM; without it the harness runs
 	 * with an empty cartridge save and every save/load screen shows no files. */
 	if (!getenv("GBARUN_NO_AUTOSAVE") && mCoreAutoloadSave(core)) {
 		fprintf(stderr, "[save] autoloaded\n");
 	} else {
 		fprintf(stderr, "[save] no save file loaded\n");
-	}
-	{
-		const char* force = getenv("GBARUN_FORCE_SAVE");
-		if (force) {
-			struct GBA* g0 = core->board;
-			GBASavedataForceType(&g0->memory.savedata, (enum SavedataType) atoi(force));
-		}
 	}
 
 	/* --- attach mGBA's software renderer ------------------------------- */
@@ -226,6 +230,26 @@ int main(int argc, char** argv) {
 	}
 	printf("wrote %s (%lu non-black pixels)\n", outPath, nz);
 
+	{
+		/* GBARUN_DUMP_SAVE=<file>: write the cartridge save memory out, so a
+		 * save the game itself wrote can be inspected (mGBA flushes .sav only
+		 * through a frontend). */
+		const char* dp = getenv("GBARUN_DUMP_SAVE");
+		if (dp && *dp) {
+			struct GBASavedata* sd = &gba->memory.savedata;
+			unsigned sz = (sd->type == SAVEDATA_EEPROM) ? 8192 :
+			              (sd->type == SAVEDATA_FLASH512) ? 65536 :
+			              (sd->type == SAVEDATA_FLASH1M) ? 131072 : 32768;
+			FILE* f = fopen(dp, "wb");
+			if (f && sd->data) {
+				fwrite(sd->data, 1, sz, f);
+				fprintf(stderr, "[save] dumped %u bytes (type %d) to %s\n", sz, sd->type, dp);
+			} else {
+				fprintf(stderr, "[save] dump FAILED (%s)\n", dp);
+			}
+			if (f) fclose(f);
+		}
+	}
 	{
 		const char* sv = getenv("GBARUN_SAVE");
 		if (sv && *sv) {
