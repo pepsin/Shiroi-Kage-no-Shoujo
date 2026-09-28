@@ -190,8 +190,8 @@ scene	entry	rows	status
 87.1	87	31	done
 88.0	88	707	done
 88.1	88	5	done
-89.0	89	148	todo
-89.1	89	21	todo
+89.0	89	148	done
+89.1	89	21	done
 90.0	90	566	done
 90.1	90	8	done
 91.0	91	451	done
@@ -555,11 +555,11 @@ scene	entry	rows	status
 269.0	269	8	done
 270.0	270	74	todo
 270.1	270	15	todo
-272.0	272	123	todo
-273.0	273	100	todo
-273.1	273	4	todo
-273.2	273	5	todo
-273.3	273	1	todo
+272.0	272	123	done
+273.0	273	100	done
+273.1	273	4	done
+273.2	273	5	done
+273.3	273	1	done
 276.0	276	191	done
 276.1	276	9	done
 277.0	277	78	done
