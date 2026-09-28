@@ -351,6 +351,12 @@ NORM_RULES = [
     # (御守り の説明行 len=11 で 1 字足りない), so the whole script uses the
     # short name instead of splitting the character in two.
     (('熊さん', '熊野さん'), [('熊先生', '熊野')]),
+    # 人名保留日文原写法（AGENT.md）：早期译文把 亜希 简体化成「亚希」、
+    # 把 ゆうちゃん 写成「小优」、把 徳子 写成「德子」等，全部收回原文写法。
+    (('亜希', 'あき'), [('亚希', '亜希')]),
+    (('ゆう', '悠'), [('小优', '小悠')]),
+    (('徳子',), [('德子', '徳子')]),
+    (('美恵', 'みえ'), [('美惠', '美恵')]),
     # とくちゃん is 安田徳子's nickname (-> 小徳), シゲ is 中西茂's (-> 阿茂);
     # keep the two apart by looking at the source line.
     (('とくちゃん',), [('阿茂', '小徳')]),
