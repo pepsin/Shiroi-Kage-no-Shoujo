@@ -325,6 +325,15 @@ def main():
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
 
+    # --- title screen cover artwork ---------------------------------------
+    # The cover is a pre-rendered page of the same kind as the disclaimer screen.
+    # docs/title/标题画面_BG3原画.png is its master: the hand-retouched artwork,
+    # so a rebuild must import it rather than fall back to the Japanese original.
+    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_title_page.py'),
+           a.out, '--apply']
+    print('running:', ' '.join(cmd[1:]))
+    subprocess.run(cmd, check=True)
+
     # --- translate the opening disclaimer page ----------------------------
     # That screen is not font text, so it never reaches translation.tsv: it is a
     # pre-rendered LZ77 blob reached through e840's resource table.  The tool
@@ -389,8 +398,11 @@ def main():
     rc_bar = run_check([sys.executable,
                         os.path.join(ROOT, 'tools', 'patch_status_bar.py'),
                         a.out, '--check'])
+    rc_title = run_check([sys.executable,
+                          os.path.join(ROOT, 'tools', 'patch_title_page.py'),
+                          a.out, '--check'])
     ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0
-          and rc_page == 0 and rc_bar == 0)
+          and rc_page == 0 and rc_bar == 0 and rc_title == 0)
     print(f'=== self-check {"PASSED" if ok else "FAILED"} '
           f'in {time.time() - t_check:.1f}s ===', flush=True)
     if not ok:
