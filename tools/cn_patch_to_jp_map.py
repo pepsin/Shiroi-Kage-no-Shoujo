@@ -12,6 +12,7 @@ Usage:
 """
 import argparse
 import csv
+import hashlib
 import os
 import sys
 
@@ -53,7 +54,11 @@ def main():
                 continue
             mapping[key] = parts[2]
 
+    digest = hashlib.sha1(open(a.table, 'rb').read()).hexdigest()
     with open(a.out, 'w', encoding='utf-8', newline='') as f:
+        # The table hash lets apply_cn_by_jp.py refuse a mapping built against an
+        # older table - re-applying a stale map would undo later fixes.
+        f.write(f'# table {digest}\n')
         for (jp, old), new in mapping.items():
             f.write(f'{jp}\t{old}\t{new}\n')
     total_rows = sum(counts.get(k, 0) for k in mapping)

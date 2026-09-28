@@ -18,6 +18,7 @@ Usage:
 """
 import argparse
 import csv
+import hashlib
 import os
 import shutil
 import sys
@@ -30,11 +31,16 @@ def main():
     ap.add_argument('mapping')
     ap.add_argument('--table', default=os.path.join(ROOT, 'data', 'translation.tsv'))
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--force', action='store_true')
     a = ap.parse_args()
 
     mapping = {}
+    stamp = None
     for n, line in enumerate(open(a.mapping, encoding='utf-8'), 1):
         line = line.rstrip('\n').rstrip('\r')
+        if line.startswith('# table '):
+            stamp = line.split()[2]
+            continue
         if not line or line.startswith('#'):
             continue
         parts = line.split('\t')
@@ -45,6 +51,12 @@ def main():
         else:
             raise SystemExit(f'{a.mapping}:{n}: expected 2 or 3 fields')
 
+    digest = hashlib.sha1(open(a.table, 'rb').read()).hexdigest()
+    if stamp and stamp != digest and not a.force:
+        raise SystemExit(
+            f'{a.mapping} was built against a different table '
+            f'({stamp[:12]} != {digest[:12]}); re-generate it or pass --force. '
+            'Applying a stale mapping would undo later fixes.')
     with open(a.table, encoding='utf-8', newline='') as f:
         lines = f.read().split('\n')
     if lines and lines[-1] == '':
