@@ -19,7 +19,8 @@ python3 tools/build_rom.py --out out.gba
 python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
 ```
 
-当前状态：**100,850 行已译**（`verify_rom.py` 全量往返一致），
+当前状态：**101,795 行已译**（`verify_rom.py` 全量往返一致），
+并按剧情把全表切成 **795 个场景**（`data/scenes.tsv`，见 `docs/翻译作业流程.md` 第六节），
 标题画面与日文原版**逐像素一致**。
 
 > 译文与流程详见 `docs/翻译作业流程.md`；打包细节（扩表 / 编码约定 / 验证）
@@ -35,7 +36,8 @@ python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
 ```
 ├── Tantei Jinguuji Saburou ... (Japan).gba   # 原版 ROM（工作基准）
 ├── data/                                     # ★ 重要产物
-│   ├── translation.tsv          ★ 翻译工作台（45488 条）
+│   ├── translation.tsv          ★ 翻译工作台（101,795 条显示行）
+│   ├── scenes.tsv / scene_lines.tsv  场景推进索引（795 个场景；每行 → 场景/位置/跨行标志）
 │   ├── glyph_map.json           ★ 码 → 字 映射（1704 条）
 │   ├── entry_catalog.tsv          FAT 条目结构普查（1430 条）
 │   ├── free_glyph_slots.json      可复用字形槽（148 个）
@@ -77,11 +79,11 @@ python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
 | 中文版字形表 | **0x800000**，**3201 字形**（原 1704 + 新做 1368 + 备用 129） |
 | 字形格式 | 16×16，4bpp，0x80 字节/字，tile 序 TL,TR,BL,BR |
 | 文本编码 | `字符 = MAP[code-1]`（code ≥ 0x20）；`字符 = MAP[code]`（code < 0x20 标点/数字）<br>位图实证：`を` 在表下标 0x08B、剧本用码位 0x08C |
-| 剧本规模 | **100,850 条字符串**，453 个条目 |
-| 已译 | **100,850 行**（全表） |
+| 剧本规模 | **101,795 条显示行**，455 个条目 / **795 个场景** |
+| 已译 | **101,795 行**（全表） |
 | 译文用字 | **2381** 个不同汉字；**1369** 个日文字库没有、全部新做（`棚` 重码占 2 槽，故 3072 个有字槽） |
 | 空槽 | 129 个（备用） |
-| ROM 内往返 | **100,850 / 100,850 完全一致** |
+| ROM 内往返 | **101,795 / 101,795 完全一致** |
 | 汉字排列 | JIS X 0208 一级汉字按读音序子集（有跳字） |
 
 详见 `docs/技术说明.md`、`docs/打包流程.md`。
@@ -115,6 +117,9 @@ python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 |---|---|
 | `python3 tools/export_script.py scan` | 普查全部 FAT 条目结构 |
 | `python3 tools/export_script.py extract` | 生成 `data/translation.tsv` |
+| `python3 tools/scene_index.py build --report` | 重建场景索引 `data/scenes.tsv` / `scene_lines.tsv` |
+| `python3 tools/scene_index.py show 3.0` | 按剧情顺序读一个场景（日文 ｜ 现译） |
+| `python3 tools/export_scene_context.py --entries 1-20 --out work/scenes/e1_20.tsv` | 导出整场景复核对 |
 | `python3 tools/import_script.py --master ... --rom ... --out ...` | 回写生成中文 ROM |
 | `python3 tools/import_script.py ... --report-only` | 只报告不写盘（预检译文） |
 | `python3 tools/lz77.py selftest` | 压缩器自测 |
