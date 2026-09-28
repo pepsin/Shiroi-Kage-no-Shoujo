@@ -47,6 +47,10 @@ CHAR_MAP = {'々': '…'}
 # ...except inside the surname 佐々木, which is a real repetition mark and is
 # written with the repeated character in Chinese: 佐々木 / 佐ー木 -> 佐佐木.
 PROTECT = ['佐々木']
+# The script writes a number range with a full stop where Chinese needs 、:
+# `6。7年前` = 六、七年前, `21。22才` = 二十一、二十二岁.  Treat that 。 as 、
+# before comparing punctuation, otherwise every range looks like a violation.
+RANGE_DOT = re.compile(r'(?<=\d)。(?=\d)')
 KANA = re.compile(r'[\u3040-\u30ff\u31f0-\u31ff]')
 
 # Rows allowed to keep kana in the output (names written in kana in the
@@ -109,6 +113,7 @@ def punct_skeleton(s):
     s = CTRL_CODE.sub('', s)
     for prot in PROTECT:                     # 佐々木 keeps its real 々
         s = s.replace(prot, '\x00' * len(prot))
+    s = RANGE_DOT.sub('、', s)               # 6。7年前 -> 六、七年前
     return ''.join(CHAR_MAP.get(ch, ch) for ch in s if CHAR_MAP.get(ch, ch) in MUST_KEEP)
 
 
