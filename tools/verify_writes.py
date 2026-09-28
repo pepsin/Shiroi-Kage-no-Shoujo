@@ -28,11 +28,14 @@ FAT = 0x15A000
 
 
 # Regions we deliberately rewrite outside any FAT-entry string slot:
-# the title-menu plate strips (patch_menu_plates.py) and the save/load screen
-# plates (patch_save_plates.py).  Two big dummy entries (e684/e1534) happen to
+# the title-menu plate strips (patch_menu_plates.py), the save/load screen
+# plates (patch_save_plates.py) and the status bar's パートナー->助手 label
+# (patch_status_bar.py).  Two big dummy entries (e684/e1534) happen to
 # span that area, so writes there look like out-of-slot changes.
 BENIGN = [(0x44BF60, 0x44BF60 + 576), (0x44C1A0, 0x44C1A0 + 576),
           (0x44C3E0, 0x44C3E0 + 576),
+          # status bar label plate (tail of the uncompressed entry e833)
+          (0x472530, 0x472610),
           # save screen: FILE-row sprite 2 (プレイ) and sprite 3 (時間)
           (0x44ECE0, 0x44ECE0 + 1024), (0x44F0E0, 0x44F0E0 + 1024),
           # save screen menu items: セーブ / ロード / 消去 (two 32x16 halves each)

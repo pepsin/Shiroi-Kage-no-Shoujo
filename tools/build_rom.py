@@ -317,6 +317,14 @@ def main():
     print('running:', ' '.join(cmd[1:]))
     subprocess.run(cmd, check=True)
 
+    # --- status bar label: パートナー -> 助手 -------------------------------
+    # The top bar's labels are pre-rendered 8x8 tile plates, not font text; the
+    # partner label lives at the tail of the uncompressed entry e833.
+    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_status_bar.py'),
+           a.out, '--apply']
+    print('running:', ' '.join(cmd[1:]))
+    subprocess.run(cmd, check=True)
+
     # --- translate the opening disclaimer page ----------------------------
     # That screen is not font text, so it never reaches translation.tsv: it is a
     # pre-rendered LZ77 blob reached through e840's resource table.  The tool
@@ -378,7 +386,11 @@ def main():
     rc_page = run_check([sys.executable,
                          os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
                          a.out, '--check'])
-    ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0 and rc_page == 0)
+    rc_bar = run_check([sys.executable,
+                        os.path.join(ROOT, 'tools', 'patch_status_bar.py'),
+                        a.out, '--check'])
+    ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0
+          and rc_page == 0 and rc_bar == 0)
     print(f'=== self-check {"PASSED" if ok else "FAILED"} '
           f'in {time.time() - t_check:.1f}s ===', flush=True)
     if not ok:
