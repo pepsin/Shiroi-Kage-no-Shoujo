@@ -47,10 +47,6 @@ CHAR_MAP = {'々': '…'}
 # ...except inside the surname 佐々木, which is a real repetition mark and is
 # written with the repeated character in Chinese: 佐々木 / 佐ー木 -> 佐佐木.
 PROTECT = ['佐々木']
-# The script writes a number range with a full stop where Chinese needs 、:
-# `6。7年前` = 六、七年前, `21。22才` = 二十一、二十二岁.  Treat that 。 as 、
-# before comparing punctuation, otherwise every range looks like a violation.
-RANGE_DOT = re.compile(r'(?<=\d)。(?=\d)')
 KANA = re.compile(r'[\u3040-\u30ff\u31f0-\u31ff]')
 
 # Rows allowed to keep kana in the output (names written in kana in the
@@ -99,38 +95,14 @@ def glyph_set():
         return {r['char'] for r in csv.DictReader(f)} - {''}
 
 
-CTRL_CODE = re.compile(r'\[[0-9A-Fa-f]{4}\]|<[0-9A-Fa-f]{4}>|\\x[0-9A-Fa-f]{4}')
-
-
 def punct_skeleton(s):
-    """Punctuation of a line, ignoring inline control codes.
-
-    The script carries colour/name codes as ``[FFC2]`` in the JP source and as
-    ``\\xFFC2`` in the translation column (that is the escape the importer
-    understands); both spellings must be invisible here, or the brackets get
-    counted as ＜ ＞ punctuation and 45 perfectly good rows look broken.
-    """
-    s = CTRL_CODE.sub('', s)
     for prot in PROTECT:                     # 佐々木 keeps its real 々
         s = s.replace(prot, '\x00' * len(prot))
-    s = RANGE_DOT.sub('、', s)               # 6。7年前 -> 六、七年前
     return ''.join(CHAR_MAP.get(ch, ch) for ch in s if CHAR_MAP.get(ch, ch) in MUST_KEEP)
 
 
 def alnum_skeleton(s):
     return ''.join(ch for ch in s if ch.isascii() and ch.isalnum())
-
-
-def slots_used(s):
-    """Code count actually written to the ROM.
-
-    A ``\\xXXXX`` escape becomes one u16 code and ``[XXXX]``/``<XXXX>`` are the
-    JP source's spelling of the same thing, so neither may be counted as the
-    six characters they occupy in the TSV.  Without this, a row like
-    ``\\xFFC2姓名\\xFFC0、神宮寺、三郎`` looks 10 characters long instead of 7
-    and gets refused even though it fits.
-    """
-    return len(CTRL_CODE.sub('', s))
 
 
 def check_pair(src, cn, rid=''):
@@ -155,8 +127,8 @@ def check_pair(src, cn, rid=''):
     kana = set(KANA.findall(cn)) - {'\u30fc', '\u30fb'}
     if kana and rid not in KANA_OK_RIDS:
         errs.append('kana left: ' + ''.join(sorted(kana)))
-    if slots_used(cn) > len(src):
-        errs.append(f'too long: {slots_used(cn)} > {len(src)}')
+    if len(cn) > len(src):
+        errs.append(f'too long: {len(cn)} > {len(src)}')
     return errs
 
 
@@ -346,17 +318,6 @@ NORM_RULES = [
     # -- handled in ALWAYS_SUB below
     # 洋子's surname is 御苑 in the script (the kana profile page guessed 美園)
     (('みその', '御苑'), [('美園', '御苑')]),
-    # 熊さん / 熊野さん (熊野参造) is one person: write him 熊野 everywhere.
-    # The honorific form 熊先生 needs one more code than most slots allow
-    # (御守り の説明行 len=11 で 1 字足りない), so the whole script uses the
-    # short name instead of splitting the character in two.
-    (('熊さん', '熊野さん'), [('熊先生', '熊野')]),
-    # 人名保留日文原写法（AGENT.md）：早期译文把 亜希 简体化成「亚希」、
-    # 把 ゆうちゃん 写成「小优」、把 徳子 写成「德子」等，全部收回原文写法。
-    (('亜希', 'あき'), [('亚希', '亜希')]),
-    (('ゆう', '悠'), [('小优', '小悠')]),
-    (('徳子',), [('德子', '徳子')]),
-    (('美恵', 'みえ'), [('美惠', '美恵')]),
     # とくちゃん is 安田徳子's nickname (-> 小徳), シゲ is 中西茂's (-> 阿茂);
     # keep the two apart by looking at the source line.
     (('とくちゃん',), [('阿茂', '小徳')]),

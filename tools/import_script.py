@@ -46,11 +46,7 @@ def reverse_map(m, kind='jp'):
         index 0x08B = を  and the script writes 0x08C for を
         index 0x020 = ×   and the script writes 0x021 for ×
     so  index = code - 1  (code >= 0x20), i.e.  code = index + 1.
-    Codes below 0x20 are written directly (code = index). The engine draws
-    index = code - 1 for EVERY code, so that low-code branch is one glyph off -
-    exactly matching jp_decode() in export_script.py. Keep both sides in sync;
-    changing only one shifts all punctuation/digits. See docs/技术说明.md
-    section 2 and section 10 item 2.
+    Codes below 0x20 index the table directly.
 
     A few characters exist at two indices; prefer the higher index because that
     is the one the game's text actually uses for the dakuten-form glyphs.

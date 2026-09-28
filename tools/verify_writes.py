@@ -97,26 +97,11 @@ def main():
                                  encoding='utf-8'), delimiter='\t'):
         cat_size[int(r['eid'])] = int(r['size'] or 0)
 
-    # FAT slots that point at an unaligned offset are not real entries: the
-    # scrambler left junk in the high ids (e1026..e1283 all sit at 0x10001,
-    # 0x20002, …).  When a real entry moves, those junk slots "decompress" to
-    # whatever now lives at that address, which is not a corruption - skip them
-    # the same way we skip empty slots.
-    junk_ids = set()
-    for eid in range(2000):
-        if not cat_size.get(eid):
-            continue
-        off = struct.unpack_from('<I', jp, FAT + eid * 8)[0]
-        if off % 4:
-            junk_ids.add(eid)
-
     bad_entries = 0
     shown = 0
     total_out = 0
     for eid in range(2000):
         if eid == 850:                    # the font table is rewritten on purpose
-            continue
-        if eid in junk_ids:               # unaligned FAT offset = junk slot
             continue
         if not cat_size.get(eid):         # not a real entry (garbage FAT slot)
             continue

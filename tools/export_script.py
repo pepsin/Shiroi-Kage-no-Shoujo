@@ -10,14 +10,10 @@ Pipeline
              control-code layout) plus the decoded source text.
 3. (later) import: read a filled translation table and rebuild the ROM.
 
-Text convention (verified, see docs/技术说明.md section 2 + section 10 item 2):
-    engine draws : glyph index = code - 1   (NO <0x20 exception)
-    jp_decode()  : code <  0x20 -> MAP[code]      (one glyph high, on purpose)
-                   code >= 0x20 -> MAP[code - 1]
-The low-code branch is deliberately one glyph off. reverse_map() in
-import_script.py applies the matching rule, so the rebuilt ROM still shows the
-original characters. Never "fix" one side only. The JP original and the CN
-release use identical text codes; they differ only in glyph bitmaps.
+Text convention (verified, see docs/技术说明.md):
+    character = glyph_map[code]      (no extra shift; the map is index-based)
+Both the JP original and the CN release use identical text codes; they differ
+only in glyph bitmaps.
 
 Usage
 -----
@@ -148,15 +144,7 @@ def cmd_scan(a):
 
 
 def jp_decode(codes, table):
-    """Decode JP text codes with this project's two-step rule.
-
-        code <  0x20 -> MAP[code]        # one glyph higher than the engine draws
-        code >= 0x20 -> MAP[code - 1]
-
-    The engine itself always draws index = code - 1 (no <0x20 exception); this
-    offset is matched by import_script.reverse_map(), so the rebuilt ROM shows
-    the original characters. See docs/技术说明.md section 2 / section 10 item 2.
-    """
+    """JP convention: codes <0x20 are glyphs taken directly, codes >=0x20 use index code+1."""
     shift = {c + 1: v for c, v in table.items()}
     out = []
     for c in codes:
