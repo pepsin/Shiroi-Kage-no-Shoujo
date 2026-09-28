@@ -40,12 +40,24 @@ ROW_INK, ROW_FILL = 1, 14          # row labels: crisp dark strokes on the fill
 ITEM_INK, ITEM_AA, ITEM_FILL = 9, 12, 15
 
 BLOCKS = [
-    # プレイ / 時間 straddle the sprite boundary: sprite 2 holds プレイ + 時,
-    # sprite 3 holds 間 + 分.  They are one label, so the two 64x32 sprites are
-    # merged into a single canvas and 分 (x 89) is left untouched.
-    dict(name='row 游戏时间',
+    # The row is NOT the single label "プレイ時間": the game draws the play time
+    # digits *into* it, so the Japanese screen reads
+    #     プレイ [hh] 時間 [mm] 分
+    # i.e. プレイ is the label and 時間 is the *hours* unit (the minute unit 分
+    # follows).  Drawing one continuous 游戏时间 puts 时间 exactly where the hours
+    # digit goes, which is why the digit used to overlap the label.
+    #
+    # The two 64x32 sprites are one canvas: sprite 2 holds プレイ + 時 (x 17..38
+    # and 55..63), sprite 3 holds 間 + 分 (x 64..73 and 89).  The digit slots are
+    # x 47..54 (hours, drawn at screen x 175) and x 74..88 (minutes, right aligned
+    # at screen x 216), so the labels have to stay out of them.
+    dict(name='row 游戏 / 时',
          segs=[(0x44ECE0, 64, 32, 0, 0), (0x44F0E0, 64, 32, 64, 0)],
-         labels=[((14, 3, 80, 14), '游戏时间', 'プレイ時間', ROW_INK, None, ROW_FILL)]),
+         labels=[((16, 3, 45, 14), '游戏', 'プレイ', ROW_INK, None, ROW_FILL),
+                 # 時間 is only 19px wide here (x 55..73) and the minute digits
+                 # start at x 74, so the unit must be one character: 小时 needs
+                 # 23px and would either be squeezed or hit the minute digits.
+                 ((55, 3, 74, 14), '时', '時間', ROW_INK, None, ROW_FILL)]),
     dict(name='menu セーブ', segs=[(0x44F5A0, 32, 16, 0, 0), (0x44F6A0, 32, 16, 32, 0)],
          labels=[((8, 2, 36, 12), '保存', 'セーブ', ITEM_INK, ITEM_AA, ITEM_FILL)]),
     dict(name='menu ロード', segs=[(0x44F7C0, 32, 16, 0, 0), (0x44F8C0, 32, 16, 32, 0)],
@@ -84,12 +96,12 @@ FONTS = [
     '/System/Library/Fonts/PingFang.ttc',
 ]
 # ink height we aim for, per block (matches the Japanese label's own height)
-WANT_H = {'row 游戏时间': 9, 'menu セーブ': 9, 'menu ロード': 9,
+WANT_H = {'row 游戏 / 时': 9, 'menu セーブ': 9, 'menu ロード': 9,
           'menu 消去': 9}
 
 # runtime OBJ palette banks (luminance of each index, read from a savestate) so
 # the preview shows what the player actually sees; index 0 is transparent
-BANK = {'row 游戏时间': 1, 'menu セーブ': 4, 'menu ロード': 0, 'menu 消去': 0}
+BANK = {'row 游戏 / 时': 1, 'menu セーブ': 4, 'menu ロード': 0, 'menu 消去': 0}
 LUM = {0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 57, 100, 133, 189, 214, 220, 221],
        1: [76, 90, 139, 182, 182, 208, 190, 190, 252, 252, 252, 252, 252, 253, 253, 253],
        4: [0, 135, 0, 0, 255, 0, 0, 0, 170, 92, 92, 143, 158, 142, 179, 190]}
