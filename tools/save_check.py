@@ -155,7 +155,7 @@ def show(path, brief=False):
             continue
         print(f'   [槽{s["i"]}] 校验和 0x{s["chk"]:08X} / 算出 0x{s["calc"]:08X} '
               f'{"✓ 有效" if s["ok"] else "✗ 损坏（差 0x%08X）" % ((s["calc"] - s["chk"]) & M)}'
-              f'   头标志={f}   小时={hour}   非零负载 {s["nonzero"]} B')
+              f'   头标志={f}   游戏时间={hour}分   非零负载 {s["nonzero"]} B')
         if not s['ok']:
             print('          → 读这个槽会进状态 7，显示「このファイルは壊れています」')
         elif not (flags >> s['i'] & 1):

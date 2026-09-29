@@ -25,6 +25,10 @@
  *   GBARUN_BIOS=<bios.bin>     use a real BIOS
  *   GBARUN_FORCE_SAVE=N        force the cartridge save type
  *   GBARUN_NO_AUTOSAVE=1       do not autoload the .sav next to the ROM
+ *   GBARUN_SAVFILE=<x.sav>     load this cartridge save (EEPROM 8 KB ...) into
+ *                              the emulated cartridge (autoload needs core->dirs.save,
+ *                              which this harness never sets - without one of these
+ *                              the game runs on an erased cartridge)
  *   GBARUN_BIOSDUMP=<file>     dump the cartridge save RAM at the end
  *   GBARUN_LOGLOAD="lo:hi"     trace loads   (writes /tmp/gbarun_mem.txt)
  *   GBARUN_LOGSTORE="lo:hi"    trace stores
@@ -683,6 +687,29 @@ int main(int argc, char** argv) {
 		              (sd->type == SAVEDATA_FLASH1M) ? 131072 : 32768;
 		if (sd->data) { memset(sd->data, 0xFF, sz); sd->dirty = 1; }
 	}
+	/* GBARUN_SAVFILE=<x.sav> - 直接把一份卡带存档（EEPROM 8 KB 等）喂给模拟器。
+	 * mCoreAutoloadSave() 要用 core->dirs.save，而本 harness 从来没有设过它，
+	 * 所以不显式加载的话游戏跑在"空白卡带"上（存档界面永远没有文件）。 */
+	{
+		const char* savf = getenv("GBARUN_SAVFILE");
+		if (savf && *savf) {
+			struct GBASavedata* sd = &gba->memory.savedata;
+			struct VFile* sf = VFileOpen(savf, O_RDONLY);
+			if (!sf) {
+				fprintf(stderr, "[save] cannot open %s\n", savf);
+			} else {
+				if (sd->type == SAVEDATA_AUTODETECT) {
+					GBASavedataForceType(sd, SAVEDATA_EEPROM);
+				}
+				bool ok = GBASavedataLoad(sd, sf);
+				fprintf(stderr, "[save] %s %s (type=%d, size=%u)\n",
+				        ok ? "loaded" : "FAILED to load", savf, (int) sd->type,
+				        (unsigned) GBASavedataSize(sd));
+				if (ok) sd->dirty = 1;
+				sf->close(sf);
+			}
+		}
+	}
 
 	/* Re-announce palette/OAM after a state load (the renderer caches them). */
 	{
@@ -693,6 +720,43 @@ int main(int argc, char** argv) {
 		renderer->outputBufferStride = WIDTH;
 	}
 	if (g_memLog) installTracer(gba);
+
+	/* GBARUN_SAMPLE=N - 单步 N 次，统计 PC（4 KB 一档）并打印最近走过的 PC 序列。
+	 * 用来回答「游戏卡在哪」，例如卡死/对话不推进时。放在状态加载之后，
+	 * 所以可以对着一份 .ssN 采样。采样完直接退出（不再跑帧）。 */
+	if (getenv("GBARUN_SAMPLE")) {
+		int nsamp = atoi(getenv("GBARUN_SAMPLE"));
+		if (nsamp <= 0) nsamp = 2000000;
+		for (int f = 0; f < 60; ++f) core->runFrame(core);   /* 先跑几帧进入稳态 */
+		enum { NB = 0x10000 };                              /* 4 KB 一档，覆盖 0..0x0FFFFFFF */
+		unsigned int* hist = calloc(NB, sizeof(unsigned int));
+		uint32_t* rec = calloc(128, sizeof(uint32_t));
+		int nrec = 0;
+		for (int i = 0; i < nsamp; ++i) {
+			core->step(core);
+			uint32_t pc = gba->cpu->gprs[15] & 0x0FFFFFFF;
+			++hist[(pc >> 12) & (NB - 1)];
+			if (nrec == 0 || rec[(nrec - 1) & 127] != pc) {
+				rec[nrec & 127] = pc;
+				++nrec;
+			}
+		}
+		fprintf(stderr, "[sample] %d 步，PC 直方图（4 KB 一档，top 20）:\n", nsamp);
+		for (int k = 0; k < 20; ++k) {
+			int bi = -1; unsigned int bv = 0;
+			for (int j = 0; j < NB; ++j) if (hist[j] > bv) { bv = hist[j]; bi = j; }
+			if (bi < 0 || !bv) break;
+			fprintf(stderr, "   %06X000  %8u  (%.1f%%)\n", bi, bv, 100.0 * bv / nsamp);
+			hist[bi] = 0;
+		}
+		fprintf(stderr, "[sample] 最近走过的 PC（去重，最后 64 个）:\n");
+		int start = nrec > 64 ? nrec - 64 : 0;
+		for (int i = start; i < nrec; ++i) fprintf(stderr, "   %08X\n", rec[i & 127]);
+		fflush(stderr);
+		free(hist); free(rec);
+		core->deinit(core);
+		return 0;
+	}
 
 	/* actions scheduled for "now" (frame -1) run before the first frame */
 	for (struct action* a = g_actions; a; a = a->next) {

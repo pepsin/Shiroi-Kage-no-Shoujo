@@ -161,7 +161,6 @@ python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 | `make` / `make help` | 一条命令跑完整流程；目标清单见 `make help` |
 | `python3 tools/merge_scene_edits.py` | 把 `scene_lines.tsv` 上的手改译文合并回主表（打包前必做） |
 | `python3 tools/romdbg.py list --entry 500` | 按引擎播放顺序列对白行（实机文本） |
-| `python3 tools/romdbg.py jump --entry 500 --index 204` | ★ 跳到该行 → 可在 mGBA 载入的 .ss1 |
 | `python3 tools/romdbg.py play --state x.ss1 --keys "A@120:4"` | 无头复跑 + 逐步截图 |
 | `python3 tools/romdbg.py where --state x.ss1` | 报告存档里正在演哪一行 |
 | `python3 tools/export_scene_context.py --entries 1-20 --out work/scenes/e1_20.tsv` | 导出整场景复核对 |

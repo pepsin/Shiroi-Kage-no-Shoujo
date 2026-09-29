@@ -10,7 +10,6 @@
 #      make slots           只做槽位预检：译文有没有超过原槽位（1 秒，打包前先跑这个）
 #      make verify          只校验现有 ROM
 #      make scenes          列场景        make show S=3.0     读一个场景
-#      make jump E=500 I=204  生成可在 mGBA 载入的跳转存档
 #      make help            全部目标
 #
 #  注意：打包只读 data/translation.tsv；data/scene_lines.tsv 是派生文件，
@@ -130,7 +129,7 @@ find:                                        ## 反查译文：make find T=病�
 	@grep -n -- "$(T)" $(MASTER) | head -20
 
 # ---------------------------------------------------------------- 实机调试
-.PHONY: dbg where jump play
+.PHONY: dbg where play
 dbg:                                         ## 编译无头调试 harness（需要 libmgba）
 	@mkdir -p work/bin
 	clang -O2 -o $(DBG) legacy/gbarun_dbg.c \
@@ -140,10 +139,6 @@ dbg:                                         ## 编译无头调试 harness（需
 where:                                       ## 看存档演到哪一行：make where STATE=x.ss1
 	@test -n "$(STATE)" || { echo '用法: make where STATE=work/dbg/base.ss1'; exit 2; }
 	@$(PY) tools/romdbg.py where --state "$(STATE)"
-
-jump:                                        ## 跳到某行存出 .ss1：make jump E=500 I=204
-	@test -n "$(E)" -a -n "$(I)" || { echo '用法: make jump E=500 I=204'; exit 2; }
-	@$(PY) tools/romdbg.py jump --entry $(E) --index $(I)
 
 play:                                        ## 无头复跑并截图：make play STATE=x.ss1 KEYS="A@120:4"
 	@test -n "$(STATE)" || { echo '用法: make play STATE=x.ss1 KEYS="A@120:4"'; exit 2; }

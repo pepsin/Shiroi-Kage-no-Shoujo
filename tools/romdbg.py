@@ -33,13 +33,15 @@
   tools/romdbg.py list  --entry 500                 # 按引擎顺序列出某条目的行
   tools/romdbg.py find  --text 病死的               # 反查某句话在哪个条目/第几行
   tools/romdbg.py where --state work/dbg/base.ss1   # 报告存档里正在演哪一行
-  tools/romdbg.py base                              # 生成/刷新跳转用的基准存档
-  tools/romdbg.py jump  --entry 500 --index 204     # ★ 跳到该行，输出 .ss1
+  tools/romdbg.py base                              # 生成/刷新基准存档（冷启动到第一段对白）
   tools/romdbg.py shot  a.ppm b.png                 # PPM → PNG（放大可选）
   tools/romdbg.py raw ...                           # 直接透传给 gbarun_dbg
 
-`jump` 产出的 .ss1 可以直接在 mGBA 里 `文件 → 载入即时存档`（或 Shift+F1..F9），
-按键继续跑，用来做实机/真机测试。
+> 为什么**没有**「跳到任意一行」的功能：唯一的实现方式是「文本级注入」——把目标行
+> 塞进当前已载入剧本的行表。那样背景/在场人物/分支标志都还是当前那一幕的，看着像
+> 跳过去了，其实什么都没验证到，只会误导排查（卡死、花屏、剧情不对都可能被它掩盖）。
+> 要真跳转，得走引擎自己的场景切换，见 `docs/调试器.md` 第五节。
+> 本工具现在只做**只读**的事：看引擎在哪一行、按脚本按键复跑、截图。
 """
 import argparse
 import csv
@@ -65,7 +67,6 @@ DESCRIPTOR = 0x02003F24      # pool base, rom ptr, buf base, buf base, ?, rows, 
 CURSOR_ADDR = 0x03007C40     # u32: 刚读完的「行偏移表项」偏移 + 2
 CURRENT_ADDR = 0x03007C44    # u32: 刚取到的「行偏移」= pool 内相对偏移
 POOL_BASE_RAM = 0x02030AA0   # 也就是 0x02030300 + 0x7A0
-SCRATCH_RAM = 0x02038000     # 注入文本用的空闲区（自动校验是否为空）
 
 
 # --------------------------------------------------------------------- 字库
@@ -305,7 +306,7 @@ def cmd_where(a):
 
 
 def ensure_base(a):
-    """生成「刚进游戏、第一段对白」的基准存档（可用于注入）。"""
+    """生成「冷启动、第一段对白」的基准存档，给 play/where 当起点用。"""
     os.makedirs(DBGDIR, exist_ok=True)
     base = a.base_state or os.path.join(DBGDIR, 'base.ss1')
     if os.path.exists(base) and not a.force:
@@ -321,89 +322,6 @@ def ensure_base(a):
     return base
 
 
-def pick_scratch(ewram, want):
-    """EWRAM 里找一段连续 0x00，用来放注入的文本。"""
-    start = SCRATCH_RAM - 0x02000000
-    for s in range(start, len(ewram) - want, 0x100):
-        if not any(ewram[s:s + want]):
-            return 0x02000000 + s
-    return None
-
-
-def cmd_jump(a):
-    rom = open(a.rom, 'rb').read()
-    d, rows = entry_rows(rom, a.entry)
-    if not rows:
-        print(f'条目 {a.entry} 没有可跳转的行')
-        return 1
-    toff, table = entry_table(d)
-    if toff is None:
-        print(f'条目 {a.entry} 找不到行偏移表')
-        return 1
-    toff_rel = toff - 0x7A0
-    sel = [r for r in rows if a.index <= r[0] < a.index + a.lines]
-    if not sel:
-        print(f'条目 {a.entry} 没有第 {a.index} 行（共 {len(rows)} 行，最大下标 {rows[-1][0]}）')
-        return 1
-
-    base = ensure_base(a)
-    if not base:
-        return 1
-    os.makedirs(DBGDIR, exist_ok=True)
-
-    # --- 第一步：跑一段，读游标，判断「下一行」是表里的第几项
-    ew, iw, out = ram_snapshot(base, a.probe_frames, os.path.join(DBGDIR, 'jump_probe'))
-    pool, buf, nrows, cur, line = state_cursor(ew, iw)
-    loaded_rel = ram_table_start(ew, pool, cur)
-    if loaded_rel is None:
-        loaded_rel = toff_rel
-    # 游标 0x.. = 刚读完的表项地址 + 2 → 下一个要读的是它后面那一项
-    next_index = (cur - 2 - loaded_rel) // 4 + 1 if cur >= 2 else 0
-    if next_index < 0:
-        next_index = 0
-    print(f'# 基准存档 {base}')
-    print(f'# 当前载入的行表在池内 +0x{loaded_rel:X}（注入目标表的 +0x{toff_rel:X}）')
-    print(f'# 池基址 0x{pool:08X}  游标 0x{cur:04X} → 下一次读第 {next_index} 项')
-    print('# 注意：这是**文本级注入** —— 只把下面的行塞进「当前已载入剧本」的行表，')
-    print('#       背景/在场人物/分支标志仍是当前那一幕的，不等于真的跳到了那一幕。')
-    print(f'# 注入条目 {a.entry} 第 {sel[0][0]}..{sel[-1][0]} 行：')
-    for i, o, codes, txt in sel:
-        print(f'   {i:>4}  {txt}')
-
-    # --- 第二步：找 EWRAM 空闲区，把文本写进去，再把行表项指过去
-    need = sum(2 * (len(c) + 1) + 16 for _, _, c, _ in sel) + 64
-    scratch = pick_scratch(ew, need)
-    if scratch is None:
-        print('EWRAM 里找不到足够大的空闲区')
-        return 1
-    print(f'# 注入区 0x{scratch:08X}（池内偏移 0x{scratch - pool:X}）')
-
-    pokes = []
-    addr = scratch
-    for k, (i, o, codes, txt) in enumerate(sel):
-        data = struct.pack(f'<{len(codes) + 1}H', *codes, 0)
-        pokes.append(f'{a.probe_frames}:{addr:#x}:{data.hex()}')
-        slot = pool + loaded_rel + 4 * (next_index + k)
-        pokes.append(f'{a.probe_frames}:{slot:#x}:{struct.pack("<I", addr - pool).hex()}')
-        addr = (addr + len(data) + 16) & ~15
-
-    outpath = a.out or os.path.join(DBGDIR, f'jump_e{a.entry}_{a.index}.ss1')
-    shot = os.path.join(DBGDIR, f'jump_e{a.entry}_{a.index}')
-    rc, out = run_harness(
-        [CN_ROM, a.probe_frames + a.tail, shot + '.ppm'],
-        {'GBARUN_STATE': base,
-         'GBARUN_POKE': ';'.join(pokes),
-         'GBARUN_SAVE': outpath,
-         'GBARUN_SHOT': shot + '_final.ppm',
-         'GBARUN_SHOT_EVERY': a.shot_every})
-    if not os.path.exists(outpath):
-        print('生成跳转存档失败：')
-        print(out)
-        return 1
-    print(f'# 已写出 {outpath}')
-    print(f'# 载入方法：mGBA → 文件 → 载入即时存档（或把文件放到 mGBA 的 state 目录按 Shift+F1..F9）')
-    print(f'# 过程截图 {shot}_shot*.ppm，末帧 {shot}_final.ppm')
-    return 0
 
 
 def cmd_shot(a):
@@ -471,18 +389,6 @@ def build_parser():
     w.add_argument('--frames', type=int, default=200)
     w.add_argument('--ram', action='store_true', default=True)
     w.set_defaults(func=cmd_where)
-
-    j = sub.add_parser('jump', help='跳到指定剧情的某一行，输出 .ss1')
-    j.add_argument('--entry', type=int, required=True)
-    j.add_argument('--index', type=int, required=True, help='表项下标（见 list 的第一列）')
-    j.add_argument('--lines', type=int, default=8, help='一次注入多少行')
-    j.add_argument('--out', default='')
-    j.add_argument('--base-state', default='')
-    j.add_argument('--force', action='store_true', help='重新生成基准存档')
-    j.add_argument('--probe-frames', type=int, default=200)
-    j.add_argument('--tail', type=int, default=60)
-    j.add_argument('--shot-every', type=int, default=30)
-    j.set_defaults(func=cmd_jump)
 
     b = sub.add_parser('base', help='生成/刷新基准存档')
     b.add_argument('--base-state', default='')
