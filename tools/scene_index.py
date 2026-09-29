@@ -58,7 +58,8 @@ LINES = os.path.join(ROOT, 'data', 'scene_lines.tsv')
 HEADER = ['entry', 'idx', 'offset', 'n_codes', 'n_bytes', 'jp_text', 'translation']
 SCENE_HEADER = ['scene', 'kind', 'entry', 'idx_from', 'idx_to', 'rows', 'codes',
                 'location', 'speakers', 'note']
-LINE_HEADER = ['rid', 'entry', 'idx', 'scene', 'pos', 'jp_text', 'translation']
+LINE_HEADER = ['rid', 'entry', 'idx', 'scene', 'pos', 'join', 'jp_text',
+               'translation']
 
 # ---------------------------------------------------------------- entry kinds
 # Numeric ranges are the game's own layout: the main story first, then the
