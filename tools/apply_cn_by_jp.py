@@ -17,6 +17,7 @@ Usage:
   apply_cn_by_jp.py mapping.tsv [--table data/translation.tsv] [--dry-run]
 """
 import argparse
+import collections
 import csv
 import hashlib
 import os
@@ -77,6 +78,27 @@ def main():
         lines = f.read().split('\n')
     if lines and lines[-1] == '':
         lines.pop()
+
+    # Context warning: a *short* Japanese line that follows many different
+    # lines is a sentence tail (「…ないな“““」); blanket-replacing it flattens
+    # contexts that need different Chinese.  Warn before writing.
+    per_entry = collections.defaultdict(list)
+    for line in lines:
+        r = line.split('\t')
+        if len(r) >= 7 and r[0].isdigit():
+            per_entry[r[0]].append(r)
+    prevs = collections.defaultdict(set)
+    for eid, rs in per_entry.items():
+        for i, r in enumerate(rs):
+            if (r[5], r[6]) in mapping or (r[5], None) in mapping:
+                prevs[r[5]].add(rs[i - 1][5] if i else '')
+    risky = {jp: pv for jp, pv in prevs.items()
+             if len(pv) > 1 and len(jp) <= 8}
+    if risky:
+        print(f'  ! {len(risky)} short line(s) follow several different lines; '
+              f'check the contexts before broadcasting:')
+        for jp, pv in list(risky.items())[:5]:
+            print(f'      {jp!r} follows {sorted(pv)[:3]}')
 
     changed = 0
     skipped = []
