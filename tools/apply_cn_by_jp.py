@@ -26,6 +26,22 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def strip_extra_commas(jp, cn):
+    """Drop a comma the Japanese line does not have (line breaks are pauses).
+
+    Helper for the reorder passes: a mapping row is (jp, new_cn) or
+    (jp, old_cn, new_cn) - always take the LAST field as the new text.
+    """
+    if cn.count('，') > jp.count('，') + jp.count('。'):
+        i = cn.find('，')
+        if i == len(cn) - 1:
+            if not jp.endswith('，'):
+                cn = cn[:-1]
+        else:
+            cn = cn[:i] + cn[i + 1:]
+    return cn
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('mapping')
