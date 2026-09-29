@@ -10,14 +10,26 @@
 **生成中文 ROM**（译文已完成，字库已扩容，一条命令）：
 
 ```bash
-python3 tools/build_rom.py --out out.gba
+make            # 合并 scene_lines 手改 → 重建索引 → 打包 → 全量校验
 ```
 
-校验：
+只想要其中一步：
 
 ```bash
-python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
+make rom        # 合并 → 索引 → 打包（不校验）
+make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库）
+make help       # 全部目标
 ```
+
+<details><summary>不用 make 时的等价命令</summary>
+
+```bash
+python3 tools/merge_scene_edits.py      # 若在 data/scene_lines.tsv 上改过译文
+python3 tools/scene_index.py build
+python3 tools/build_rom.py --out "侦探神宫寺三郎 - 白影的少女 (简中).gba"
+python3 tools/verify_rom.py "侦探神宫寺三郎 - 白影的少女 (简中).gba"
+```
+</details>
 
 当前状态：**101,795 行已译**（`verify_rom.py` 全量往返一致），
 并按剧情把全表切成 **795 个场景**（`data/scenes.tsv`，见 `docs/翻译作业流程.md` 第六节），
@@ -46,6 +58,7 @@ python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
 │   └── sheets_jp/                 字形表图片（校对用）
 ├── docs/                                     # 文档
 │   ├── 技术说明.md                ROM 结构 / 码位约定 / 字库格式
+│   ├── 调试器.md                  ★ 剧情跳转调试器（romdbg）原理与用法
 │   ├── 汉化方案设计.md            字库扩容方案与容量测算
 │   ├── 剧本导出报告.md            导出成果与验证
 │   └── archive/                   中间过程文档
@@ -60,8 +73,9 @@ python3 tools/verify_rom.py out.gba     # ROM 内文本 ↔ 主表逐条比对
 │   ├── mapio.py                   glyph_map.csv 读写入口
 │   ├── render_sheets.py           渲染字形表
 │   └── font_sheet.py              字形校验图
-├── legacy/                                   # 模拟器验证链备份（64 KB）
-│   ├── gbarun.c                   无头 mGBA harness 源码（需自行编译 libmgba）
+├── legacy/                                   # 无头 mGBA harness 源码（需自行编译 libmgba）
+│   ├── gbarun_dbg.c               ★ 调试套件：逐帧 poke/read/watch/search + 截图
+│   ├── gbarun.c  gbarun_state.c  gbarun_shot.c  autoplay.c
 │   └── bios/ gba_bios.zip         GBA BIOS
 └── work/                                     # 运行时缓存（可删，会自动重建）
 ```
@@ -119,6 +133,12 @@ python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 | `python3 tools/export_script.py extract` | 生成 `data/translation.tsv` |
 | `python3 tools/scene_index.py build --report` | 重建场景索引 `data/scenes.tsv` / `scene_lines.tsv` |
 | `python3 tools/scene_index.py show 3.0` | 按剧情顺序读一个场景（日文 ｜ 现译） |
+| `make` / `make help` | 一条命令跑完整流程；目标清单见 `make help` |
+| `python3 tools/merge_scene_edits.py` | 把 `scene_lines.tsv` 上的手改译文合并回主表（打包前必做） |
+| `python3 tools/romdbg.py list --entry 500` | 按引擎播放顺序列对白行（实机文本） |
+| `python3 tools/romdbg.py jump --entry 500 --index 204` | ★ 跳到该行 → 可在 mGBA 载入的 .ss1 |
+| `python3 tools/romdbg.py play --state x.ss1 --keys "A@120:4"` | 无头复跑 + 逐步截图 |
+| `python3 tools/romdbg.py where --state x.ss1` | 报告存档里正在演哪一行 |
 | `python3 tools/export_scene_context.py --entries 1-20 --out work/scenes/e1_20.tsv` | 导出整场景复核对 |
 | `python3 tools/import_script.py --master ... --rom ... --out ...` | 回写生成中文 ROM |
 | `python3 tools/import_script.py ... --report-only` | 只报告不写盘（预检译文） |

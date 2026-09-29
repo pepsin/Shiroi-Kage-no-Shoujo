@@ -73,6 +73,11 @@ htmlcov/
 *.bios
 *BIOS*.bin
 
+# ---------- 场景索引指纹（scene_index.py build 生成） ----------
+# 记录 scene_lines.tsv 是从哪一版 data/translation.tsv 生成的，
+# merge_scene_edits.py 用它判断索引是否过期
+/data/scene_lines.tsv.sig
+
 # ---------- 工具生成的字形图 ----------
 # 注意：data/sheets_jp/*.png 是校对源图，必须保留
 /font_sheet*.png

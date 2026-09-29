@@ -334,6 +334,16 @@ def build(report=False, pool_order='offset'):
                                ('' if not cont else cont) + joins,
                                r['jp_text'], r['translation']]) + '\n')
 
+    # 记下「这份 scene_lines 是从哪一版主表生成的」：merge_scene_edits.py 靠它判断
+    # 索引是否过期（主表被直接改过时，过期的 scene_lines 不能反向覆盖主表）。
+    try:
+        import hashlib
+        digest = hashlib.sha1(open(MASTER, 'rb').read()).hexdigest()
+        with open(LINES + '.sig', 'w', encoding='utf-8', newline='') as f:
+            f.write(f'{digest}\t{len(lines)}\n')
+    except OSError:
+        pass
+
     if report:
         kc = collections.Counter(s['kind'] for s in scenes)
         print(f'entries: {len(by_entry)}  scenes: {len(scenes)}  rows: {len(lines)}')
