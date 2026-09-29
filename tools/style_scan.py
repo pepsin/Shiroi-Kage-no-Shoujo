@@ -44,6 +44,11 @@ RULES = [
     ('passive', re.compile(r'被.{1,6}(了|到|着)')),
     ('nomi', re.compile(r'的事情|的样子|的时候|的东西')),
 ]
+# A Chinese "的事情/的东西/的样子/的时候" is only a calque when the Japanese
+# line has no matching noun: 貴之が拾った物は -> "貴之捡到的东西" is faithful,
+# while 報告するため -> "为了报告的事情" would not be.
+NOMI_PAIR = [('的事情', ('事',)), ('的东西', ('物', 'もの')),
+             ('的样子', ('様子', 'よう')), ('的时候', ('時', 'とき'))]
 
 
 def reviewed_lines():
@@ -70,7 +75,21 @@ def scan(min_chars=9, scene=None, rule=None):
             if len(jp) < min_chars or jp in seen:
                 continue
             cn = r['translation']
-            why = [name for name, rx in RULES if rx.search(cn)]
+            why = []
+            for name, rx in RULES:
+                if not rx.search(cn):
+                    continue
+                if name == 'nomi' and any(
+                        w in cn and any(j in jp for j in words)
+                        for w, words in NOMI_PAIR):
+                    # the Japanese really says 事/物/様子/時 - not a calque
+                    stripped = cn
+                    for w, words in NOMI_PAIR:
+                        if any(j in jp for j in words):
+                            stripped = stripped.replace(w, '')
+                    if not re.search(r'的事情|的样子|的时候|的东西', stripped):
+                        continue
+                why.append(name)
             if len(cn) >= len(jp) * 1.45:
                 why.append('bloat')
             if why and (rule is None or rule in why):
