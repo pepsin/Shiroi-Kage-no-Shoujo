@@ -97,8 +97,15 @@ def rid_of(entry, idx, kind=''):
     return f'{entry}:{idx}'
 
 
+# The Chinese build writes the map it actually used to work/glyph_map.ext.csv
+# (JP slots reused + appended glyphs).  data/glyph_map.csv stays the *Japanese*
+# map that the extractors need, so prefer the built one when it exists.
+EXTMAP = os.path.join(ROOT, 'work', 'glyph_map.ext.csv')
+
+
 def glyph_set():
-    with open(MAPFILE, encoding='utf-8') as f:
+    path = EXTMAP if os.path.exists(EXTMAP) else MAPFILE
+    with open(path, encoding='utf-8') as f:
         return {r['char'] for r in csv.DictReader(f)} - {''}
 
 
