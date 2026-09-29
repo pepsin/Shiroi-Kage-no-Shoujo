@@ -83,3 +83,4 @@ htmlcov/
 # GBA BIOS（版权文件）
 /legacy/bios/
 /legacy/gba_bios.zip
+*.pre-insert
