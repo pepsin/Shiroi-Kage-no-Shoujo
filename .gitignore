@@ -79,6 +79,14 @@ htmlcov/
 /render_*.png
 /out_*.png
 
+# ---------- data/glyph_png：字形 PNG 底稿（本地生成 + 手工改字） ----------
+# 3206 张 128×128 PNG + manifest.tsv（约 13 MB），由 tools/export_glyphs.py 生成，
+# 不进版本库。真实目录已改名 data/glyph_png.nosync（iCloud 跳过 .nosync 后缀），
+# data/glyph_png 保留为指向它的软链接，工具/脚本里的路径不用改。
+# 说明文档：docs/字形PNG底稿.md；目录丢了重跑 export_glyphs.py 即可。
+/data/glyph_png
+/data/glyph_png.nosync/
+
 # ---------- legacy/：模拟器验证链备份 ----------
 # GBA BIOS（版权文件）
 /legacy/bios/
