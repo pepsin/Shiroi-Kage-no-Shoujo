@@ -215,6 +215,8 @@ def main():
     newmap = dict(gmap)
     for ch, idx in assign.items():
         newmap[idx] = ch
+    # work/ 是可再生的中间目录，可能被 make clean 整个删掉——自己建，别假设它存在
+    os.makedirs(os.path.dirname(EXT_MAP), exist_ok=True)
     with open(EXT_MAP, 'w', encoding='utf-8', newline='') as f:
         w = csv.writer(f)
         w.writerow(['code', 'dec', 'char'])

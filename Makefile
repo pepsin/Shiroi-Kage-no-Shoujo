@@ -43,7 +43,14 @@ FRAMES    ?= 1200
 .PHONY: all merge index rom verify
 
 # 校验步骤复用同一段配方：`make` 跑完打包后校验，`make verify` 单独跑
+# 注意 verify_glyphs 要读 work/glyph_map.ext.csv（打包中间产物），
+# 所以 work/ 被清掉之后不能单独 make verify——下面的护栏说明得很清楚。
 define run_verify
+	@if [ ! -f work/glyph_map.ext.csv ]; then \
+		echo "!! work/glyph_map.ext.csv 不存在（打包时生成的字形映射）。"; \
+		echo "   work/ 是可再生的中间目录，清掉之后请先跑：make rom"; \
+		exit 2; \
+	fi
 	@echo "== 全量校验 $(ROM)"
 	@$(PY) tools/verify_rom.py "$(ROM)"
 	@echo
@@ -126,13 +133,14 @@ backup:                                      ## 备份现有 ROM 到 work/backup
 	@cp -p "$(ROM)" "work/backup/$$(date +%Y%m%d-%H%M%S)-$(ROM)"
 	@ls -lt work/backup | head -4
 
-clean:                                       ## 清掉 work/ 缓存（data/ 不动）
-	rm -rf work/cache work/batches work/play work/dbg
-	@echo "== 已清 work/ 缓存（data/ 与 ROM 未动）"
+clean:                                       ## 清掉 work/（全部可再生，data/ 与 ROM 不动）
+	rm -rf work
+	@echo "== 已删除 work/（截图 / 即时存档 / 批处理导出 / 字体中间物 / harness，全部可再生）"
+	@echo "   data/、docs/、tools/、legacy/ 与 ROM 未动"
 
 distclean: clean                             ## 连 ROM 一起清掉
-	rm -f "$(ROM)" work/font_patched.gba
-	@echo "== 已删除构建产物"
+	rm -f "$(ROM)"
+	@echo "== 已删除构建产物（work/ 与 ROM）"
 
 env:                                         ## 检查依赖是否齐备
 	@echo "python3 : $$($(PY) -V 2>&1)"

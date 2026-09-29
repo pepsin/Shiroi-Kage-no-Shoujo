@@ -287,6 +287,7 @@ def cmd_find(a):
 
 
 def cmd_where(a):
+    os.makedirs(DBGDIR, exist_ok=True)
     ew, iw, out = ram_snapshot(a.state, a.frames, os.path.join(DBGDIR, 'where'))
     pool, buf, rows, cur, line = state_cursor(ew, iw)
     rel = ram_table_start(ew, pool, cur)
@@ -348,6 +349,7 @@ def cmd_jump(a):
     base = ensure_base(a)
     if not base:
         return 1
+    os.makedirs(DBGDIR, exist_ok=True)
 
     # --- 第一步：跑一段，读游标，判断「下一行」是表里的第几项
     ew, iw, out = ram_snapshot(base, a.probe_frames, os.path.join(DBGDIR, 'jump_probe'))
