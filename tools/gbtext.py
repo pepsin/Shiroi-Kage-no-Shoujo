@@ -27,6 +27,10 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 
 FAT = 0x15A000
 BASE = 0x15C000
+# 资源表（FAT）只有 1024 项：0x15A000..0x15C000。再往后就是 **e0 的数据区**，
+# 里面放着引擎的剧本分发表（file 0x15C004，509 条 (keyA,keyB)→entry）。把 0x15C000
+# 当 FAT 读/写会把分发表当成资源条目——剧本入口与存档续读都靠它，见 docs/存档格式.md。
+FAT_ENTRIES = 1024
 GLYPH_MAX = 0x6A8
 MAPFILE_JP = os.path.join(ROOT, 'data', 'glyph_map.csv')
 

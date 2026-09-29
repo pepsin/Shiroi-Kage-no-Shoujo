@@ -70,6 +70,9 @@ MAX_DIFF_SHOW = 40
 FAT = 0x15A000
 BASE = 0x15C000
 FONT_EID = 850
+# e0 的数据区 = 引擎的剧本分发表所在（FAT[0] = off 0 size 0xFEC）
+CRIT_OFF = 0x15C000
+CRIT_LEN = 0xFEC
 
 
 def main():
@@ -112,6 +115,29 @@ def main():
             idx = int(r['idx'])
             want.setdefault(eid, {})[idx] = norm_tr(tr)
             row_of[(eid, idx)] = r
+
+    # --- 引擎关键区：e0 数据区（含剧本分发表）必须与日文原版逐字节一致 --------
+    # FAT[0] = (off 0, size 0xFEC)，所以 file 0x15C000..0x15CFEC 是 **e0 的数据区**，
+    # 引擎的剧本分发表（file 0x15C004，509 条 (keyA,keyB)→entry）就在里面。
+    # 剧本入口和「读档后接着演」都查这张表；汉化只该改字符串槽位，这块必须一个
+    # 字节都不动（FAT 只有 1024 项，eid>=1024 的写入也会砸到这里）。
+    crit_ok = True
+    crit_diffs = []
+    if os.path.exists(g.JP_ROM):
+        jp = open(g.JP_ROM, 'rb').read()
+        if len(jp) >= CRIT_OFF + CRIT_LEN:
+            crit_diffs = [i for i in range(CRIT_OFF, CRIT_OFF + CRIT_LEN)
+                          if jp[i] != rom[i]]
+            crit_ok = not crit_diffs
+    if not os.path.exists(g.JP_ROM):
+        print(f'engine-critical region 0x{CRIT_OFF:X}: 找不到日文原版，跳过对比'
+              f'（{os.path.basename(g.JP_ROM)}）')
+    else:
+        print(f'engine-critical region 0x{CRIT_OFF:X}..0x{CRIT_OFF + CRIT_LEN:X} '
+              f'(e0 数据 = 剧本分发表，读档续演靠它): {len(crit_diffs)} 字节差异 '
+              f'{"✓" if crit_ok else "✗ PROBLEM"}')
+        if crit_diffs:
+            print('  前几处差异:', [hex(x) for x in crit_diffs[:8]])
 
     # --- font table sanity ------------------------------------------------
     off, size = struct.unpack_from('<2I', rom, FAT + FONT_EID * 8)
@@ -203,7 +229,7 @@ def main():
         print(f'      ROM : {got if got is not None else "（读不到这条字符串）"}')
     if len(diffs) > MAX_DIFF_SHOW:
         print(f'  … 其余 {len(diffs) - MAX_DIFF_SHOW} 处省略。')
-    good = (bad == 0 and not missing)
+    good = (bad == 0 and not missing and crit_ok)
     if not good:
         print('  一行行点名这些差异（1 秒，不用等打包）：')
         print('      python3 tools/check_slots.py     # 译文超过原槽位的情况')

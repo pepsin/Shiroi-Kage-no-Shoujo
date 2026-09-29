@@ -68,7 +68,9 @@ def block_span(rom, head=852, max_gap=0x40):
     boundaries, so they must stay adjacent after relocation.
     """
     ents = []
-    for eid in range(1500):
+    # FAT 只有 g.FAT_ENTRIES(1024) 项；再往后是 e0 的数据区（含剧本分发表），
+    # 不能当资源条目读。
+    for eid in range(g.FAT_ENTRIES):
         o, sz = struct.unpack_from('<2I', rom, FAT + eid * 8)
         if sz:
             ents.append((BASE + o, BASE + o + sz, eid))

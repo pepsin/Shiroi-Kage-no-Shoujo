@@ -231,7 +231,7 @@ def main():
     # following gap can take it - otherwise the hard-coded reader keeps seeing
     # the old (Japanese) bytes.
     _ents = []
-    for _e in range(1500):
+    for _e in range(g.FAT_ENTRIES):
         _o, _s = struct.unpack_from('<2I', rom, g.FAT + _e * 8)
         if _o or _s:
             _ents.append((_o, _e))
@@ -242,6 +242,18 @@ def main():
     miss_total = 0
     skips = []          # (eid, kind, key, why, text)：被跳过＝ROM 里仍是日文
     eids = sorted(set(todo) | set(pool))
+    # FAT 只有 g.FAT_ENTRIES 项（0x15A000..0x15C000）。eid >= 1024 的条目要写
+    # FAT[1024] = file 0x15C000，那正是 **e0 的数据区**——引擎的剧本分发表
+    # （file 0x15C004，509 条）就在里面，写坏它剧本入口和存档续读都会完蛋。
+    over = [e for e in eids if e >= g.FAT_ENTRIES]
+    if over:
+        print()
+        print(f'!! 主表里有 entry >= {g.FAT_ENTRIES} 的行: {over[:8]}'
+              f'{" …" if len(over) > 8 else ""}')
+        print(f'   FAT 只有 {g.FAT_ENTRIES} 项（0x15A000..0x15C000），再往后是 e0 的数据区，')
+        print('   里面是引擎的剧本分发表（file 0x15C004，509 条）——写 FAT 会把它覆盖掉。')
+        print('   已中止：没有写 ROM。请先确认这些 entry 号是不是写错了。')
+        return 1
     t_start = time.time()
     print(f'importing {len(eids)} entries (table rows for {len(todo)}, '
           f'pool rows for {len(pool)}); progress below', flush=True)
