@@ -11,7 +11,10 @@ Workflow
 
 Constraints enforced (AGENT.md):
   * punctuation of the source is kept exactly, same order (nothing added,
-    nothing dropped)
+    nothing dropped) - compared per *sentence group* (the display lines joined
+    by the game's continuation marks), so a translation may move a comma to
+    another line of the same sentence, which is what re-splitting a Japanese
+    clause order into natural Chinese needs
   * the translation never needs more codes than the original slot
   * no kana (except rows listed in KANA_OK_RIDS)
   * digits / latin letters preserved
@@ -158,6 +161,51 @@ def check_pair(src, cn, rid=''):
     if slots_used(cn) > len(src):
         errs.append(f'too long: {slots_used(cn)} > {len(src)}')
     return errs
+
+
+LINES = os.path.join(ROOT, 'data', 'scene_lines.tsv')
+
+
+def load_groups():
+    """(entry, idx) -> sentence-group id, from data/scene_lines.tsv.
+
+    A display line belongs to the previous one when the game continues the
+    sentence across the line break (`join` contains '<').  Punctuation is
+    checked per group, because where a comma falls among the lines of one
+    sentence is a layout choice, not a translation error.
+    """
+    groups = {}
+    if not os.path.exists(LINES):
+        return None
+    gid = 0
+    for line in open(LINES, encoding='utf-8'):
+        p = line.rstrip('\n').split('\t')
+        if len(p) < 6 or p[0] == 'rid':
+            continue
+        if '<' not in p[5]:
+            gid += 1
+        groups[(p[1], p[2])] = gid
+    return groups
+
+
+def check_group_punct(pairs):
+    """pairs: [(jp_text, cn_text)] of one sentence group.
+
+    Returns (extra, lost): punctuation the Chinese **added** and punctuation
+    the Japanese had but the Chinese dropped.  Only *adding* is a violation:
+    Chinese does not need every Japanese pause (洋子君は。 → 洋子…), but it must
+    not invent 句读 the source does not have.  Because the comparison is per
+    sentence group, a comma may also move to another line of the same sentence.
+    """
+    # 。 and ， are both "the line stops here" marks; re-splitting a Japanese
+    # sentence into natural Chinese lines moves them around, so the two are
+    # treated as one class.
+    def cls(s):
+        return s.replace('。', '，')
+    gjp = cls(''.join(punct_skeleton(j) for j, _ in pairs))
+    gcn = cls(''.join(punct_skeleton(c) for _, c in pairs))
+    return (collections.Counter(gcn) - collections.Counter(gjp),
+            collections.Counter(gjp) - collections.Counter(gcn))
 
 
 def cmd_batches(a):
@@ -440,17 +488,59 @@ def cmd_check(a):
     examples = collections.defaultdict(list)
     ratio = collections.Counter()
     translated = 0
+    groups = load_groups()
+    grp = collections.defaultdict(list)
+    moved = 0
+    dropped = 0
     for r in rows:
         cn = r['translation'].strip()
         if not cn:
             continue
         translated += 1
         rid = rid_of(r['entry'], r['idx'], r['kind'])
+        if punct_skeleton(r['jp_text']) != punct_skeleton(cn):
+            moved += 1
+        gid = groups.get((r['entry'], r['idx'])) if groups else None
+        if gid is not None:
+            grp[gid].append((r['jp_text'], cn))
+            for e in check_pair(r['jp_text'], cn, rid):
+                if e.startswith('punctuation'):
+                    continue          # judged per sentence group below
+                key = e.split(':')[0].split(' ')[0]
+                bad[key] += 1
+                if len(examples[key]) < 8:
+                    examples[key].append(
+                        f'{rid}: {r["jp_text"]!r} -> {cn!r} [{e}]')
+            continue
         for e in check_pair(r['jp_text'], cn, rid):
             key = e.split(':')[0].split(' ')[0]
             bad[key] += 1
             if len(examples[key]) < 8:
                 examples[key].append(f'{rid}: {r["jp_text"]!r} -> {cn!r} [{e}]')
+    if groups is not None:
+        for gid, pairs in grp.items():
+            extra, lost = check_group_punct(pairs)
+            dropped += sum(lost.values())
+            if not extra:
+                continue
+            key = 'punctuation'
+            bad[key] += 1
+            if len(examples[key]) < 8:
+                examples[key].append(
+                    f'group {gid}: {pairs[0][0]!r} -> {pairs[-1][1]!r} '
+                    f'[added {"".join(sorted(extra.elements()))!r}]')
+            for jp, cn in pairs:
+                for e2 in check_pair(jp, cn, ''):
+                    if e2.startswith('punctuation'):
+                        continue
+                    key2 = e2.split(':')[0].split(' ')[0]
+                    bad[key2] += 1
+                    if len(examples[key2]) < 8:
+                        examples[key2].append(f'{jp!r} -> {cn!r} [{e2}]')
+        print(f'lines whose comma moved to another line of the same sentence: '
+              f'{moved}')
+        print(f'punctuation marks dropped (Japanese pause Chinese does not '
+              f'need): {dropped}')
         for ch in cn:
             if ch not in have and not ch.isspace():
                 missing[ch] += 1

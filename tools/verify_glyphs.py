@@ -134,7 +134,10 @@ def main():
                     dup_bad += 1
             elif got != slot(int(r['index'], 16)):
                 edited += 1
-        on_disk = {f.casefold() for f in on_disk_names}
+        # macOS stores filenames decomposed (NFD); the manifest is NFC, so
+        # normalise both sides or every kana with a dakuten looks "stale".
+        on_disk = {unicodedata.normalize('NFC', f).casefold()
+                   for f in on_disk_names}
         listed = {unicodedata.normalize('NFC', r['file']).casefold() for r in rows}
         stale = len(on_disk - listed)
         print(f'C  PNGs out of sync with the ROM: {edited}; '
