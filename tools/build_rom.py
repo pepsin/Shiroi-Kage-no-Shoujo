@@ -16,12 +16,17 @@ Two things have to happen:
 2. **Script**  import_script.py rewrites every translated string in place with
    the extended character map.
 
+任何一步出错都会**立刻中止**（后面一步都不跑）：开头是 1 秒的槽位预检
+（译文装不进原槽位就别打包），中途是 import_script / 各个 patch 工具的退出码，
+最后是六项自检；自检不过则以非 0 退出并列出 ✗ 清单。
+
 Usage:
   build_rom.py [--rom JP.gba] [--master data/translation.tsv] [--out out.gba]
-               [--headroom 128] [--no-script]
+               [--headroom 128] [--no-script] [--no-preflight]
 """
 import argparse
 import re
+import subprocess
 import time
 import collections
 import csv
@@ -182,7 +187,22 @@ def main():
                          'instead of the bundled pixel font (tools/fonts/zpix)')
     ap.add_argument('--force-glyph-edits', action='store_true',
                     help='apply data/glyph_png even if it looks stale')
+    ap.add_argument('--no-preflight', action='store_true',
+                    help='跳过打包前的槽位预检（make 里已经跑过 make slots 时才用）')
     a = ap.parse_args()
+
+    # --- 预检：译文装不装得进原槽位（出错就别往下走）-------------------------
+    # 回写是「写回原槽位」：译文比原文长的行会被 import_script 跳过、只留日文原文，
+    # 那样一路跑到最后自检才报错，白白多跑两分钟，还把菜单/标题/字库步骤都跑了一遍。
+    # check_slots 只读 TSV，一秒内把这类问题按行点名，拦在门口。
+    if not a.no_script and not a.no_preflight:
+        rc = run_check([sys.executable, os.path.join(ROOT, 'tools', 'check_slots.py'),
+                        '--master', a.master])
+        if rc != 0:
+            print()
+            print('!! 打包中止：槽位预检没通过（上面列出的行就是原因）。')
+            print('   后面的步骤（扩表 / 回写剧本 / 菜单 / 标题 / 字库 / 自检）一步都没跑。')
+            raise SystemExit(1)
 
     font_patch.set_pixel_font(not a.outline_font)
     print(f'new glyphs: {"pixel font " + os.path.basename(font_patch.PIXEL_FONT) if font_patch.use_pixel_font() else "outline font downscale"}',
@@ -299,58 +319,53 @@ def main():
 
     if a.no_script:
         return
+    # 每一步都用 run_step：**失败即中止**，不让后面的菜单/标题/字库/自检接着跑
+    # （以前是 subprocess.run(check=True)，出错只有一坨调用栈，而且流程已经走完了）。
     # --- import the script ----------------------------------------------
-    import subprocess
-    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'import_script.py'),
-           '--master', a.master, '--rom', patched, '--out', a.out,
-           '--map', EXT_MAP]
-    print('running:', ' '.join(cmd[1:]), flush=True)
-    subprocess.run(cmd, check=True)
+    run_step('回写剧本（译文 → ROM）',
+             [sys.executable, os.path.join(ROOT, 'tools', 'import_script.py'),
+              '--master', a.master, '--rom', patched, '--out', a.out,
+              '--map', EXT_MAP], a.out)
 
     # --- redraw the pre-rendered menu plates (title screen) ---------------
-    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_menu_plates.py'),
-           '--apply', a.out, a.out]
-    print('running:', ' '.join(cmd[1:]))
-    subprocess.run(cmd, check=True)
+    run_step('菜单牌子（标题画面）',
+             [sys.executable, os.path.join(ROOT, 'tools', 'patch_menu_plates.py'),
+              '--apply', a.out, a.out], a.out)
 
     # --- redraw the pre-rendered save/load screen plates ------------------
-    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_save_plates.py'),
-           '--apply', a.out, a.out]
-    print('running:', ' '.join(cmd[1:]))
-    subprocess.run(cmd, check=True)
+    run_step('存/读档牌子',
+             [sys.executable, os.path.join(ROOT, 'tools', 'patch_save_plates.py'),
+              '--apply', a.out, a.out], a.out)
 
     # --- status bar label: パートナー -> 助手 -------------------------------
     # The top bar's labels are pre-rendered 8x8 tile plates, not font text; the
     # partner label lives at the tail of the uncompressed entry e833.
-    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_status_bar.py'),
-           a.out, '--apply']
-    print('running:', ' '.join(cmd[1:]))
-    subprocess.run(cmd, check=True)
+    run_step('状态栏文字',
+             [sys.executable, os.path.join(ROOT, 'tools', 'patch_status_bar.py'),
+              a.out, '--apply'], a.out)
 
     # --- title screen cover artwork ---------------------------------------
     # The cover is a pre-rendered page of the same kind as the disclaimer screen.
     # docs/title/标题画面_BG3原画.png is its master: the hand-retouched artwork,
     # so a rebuild must import it rather than fall back to the Japanese original.
-    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_title_page.py'),
-           a.out, '--apply']
-    print('running:', ' '.join(cmd[1:]))
-    subprocess.run(cmd, check=True)
+    run_step('标题画面原画',
+             [sys.executable, os.path.join(ROOT, 'tools', 'patch_title_page.py'),
+              a.out, '--apply'], a.out)
 
     # --- translate the opening disclaimer page ----------------------------
     # That screen is not font text, so it never reaches translation.tsv: it is a
     # pre-rendered LZ77 blob reached through e840's resource table.  The tool
     # rewrites the blob (Chinese lines + a credit footer) and keeps the table
     # entry in sync, writing in place whenever the new stream is small enough.
-    cmd = [sys.executable, os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
-           a.out, '--apply']
-    print('running:', ' '.join(cmd[1:]))
-    subprocess.run(cmd, check=True)
+    run_step('免责页',
+             [sys.executable, os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
+              a.out, '--apply'], a.out)
 
     # --- apply hand-edited glyph PNGs -------------------------------------
     # data/glyph_png is the editable view of the font table; without this step
     # a rebuild would silently revert every glyph the user redrew by hand.
     if not a.no_glyph_edits and os.path.exists(os.path.join(a.glyph_dir, 'manifest.tsv')):
-        print('[phase] applying hand-edited glyphs', flush=True)
+        print('\n== 手工改过的字形 PNG', flush=True)
         imp = [sys.executable, os.path.join(ROOT, 'tools', 'import_glyphs.py'),
                '--dir', a.glyph_dir, '--skip-unused']
         # A freshly rendered font should match the exported PNGs exactly, so
@@ -359,6 +374,11 @@ def main():
         # would revert the render - ask before doing that.
         chk = subprocess.run(imp + ['--rom', a.out, '--dry-run'],
                              capture_output=True, text=True)
+        if chk.returncode != 0:
+            # 以前这里不看退出码：dry-run 挂了会当成「0 处手改」继续往下跑。
+            print(chk.stdout, chk.stderr, flush=True)
+            raise SystemExit(f'import_glyphs.py --dry-run 失败（退出码 {chk.returncode}），'
+                             f'已中止；{a.out} 停在描画字形之前。')
         m = re.search(r'hand-edited images: (\d+)', chk.stdout)
         n_hand = int(m.group(1)) if m else 0
         if n_hand > GLYPH_EDIT_LIMIT and not a.force_glyph_edits:
@@ -368,9 +388,8 @@ def main():
                 f'rendered (expected only a few hand edits).\n'
                 f'The directory was probably exported from a different ROM; re-export it '
                 f'from a current build, or pass --force-glyph-edits to use it as-is.')
-        cmd = imp + ['--rom', a.out, '--out', a.out]
-        print('running:', ' '.join(cmd[1:]), flush=True)
-        subprocess.run(cmd, check=True)
+        run_step('写回手工字形',
+                 imp + ['--rom', a.out, '--out', a.out], a.out)
 
         # --- re-export the editable view ---------------------------------
         # A newly needed character can land in a slot the previous export
@@ -379,44 +398,69 @@ def main():
         # glyph self-check would flag it.  Re-export from the ROM we just
         # wrote: every hand edit has been imported by now, so --force only
         # discards the stale blanks.
-        cmd = [sys.executable, os.path.join(ROOT, 'tools', 'export_glyphs.py'),
-               '--rom', a.out, '--out', a.glyph_dir, '--map', EXT_MAP, '--force']
-        print('running:', ' '.join(cmd[1:]), flush=True)
-        subprocess.run(cmd, check=True)
+        run_step('重新导出字形底稿',
+                 [sys.executable, os.path.join(ROOT, 'tools', 'export_glyphs.py'),
+                  '--rom', a.out, '--out', a.glyph_dir, '--map', EXT_MAP, '--force'], a.out)
 
 
     # --- self-checks ------------------------------------------------------
+    # 每项都打标签：失败时末尾给一张清单，而不是只说 "see the output above"
+    # （上面几百行格式化输出，真正的问题经常已经滚出屏幕）。
     t_check = time.time()
     print('\n=== self-check ===', flush=True)
-    rc_verify = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_rom.py'),
-                           a.out])
-    rc_writes = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_writes.py'),
-                           '--cn', a.out])
-    rc_glyphs = run_check([sys.executable, os.path.join(ROOT, 'tools', 'verify_glyphs.py'),
-                           a.out, '--dir', a.glyph_dir])
-    rc_page = run_check([sys.executable,
-                         os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
-                         a.out, '--check'])
-    rc_bar = run_check([sys.executable,
-                        os.path.join(ROOT, 'tools', 'patch_status_bar.py'),
-                        a.out, '--check'])
-    rc_title = run_check([sys.executable,
-                          os.path.join(ROOT, 'tools', 'patch_title_page.py'),
-                          a.out, '--check'])
-    ok = (rc_verify == 0 and rc_writes == 0 and rc_glyphs == 0
-          and rc_page == 0 and rc_bar == 0 and rc_title == 0)
+    t = os.path.join(ROOT, 'tools')
+    py = sys.executable
+    checks = [
+        ('verify_rom.py（ROM 回读 vs 主表译文）', [py, os.path.join(t, 'verify_rom.py'), a.out]),
+        ('verify_writes.py（写入范围）', [py, os.path.join(t, 'verify_writes.py'), '--cn', a.out]),
+        ('verify_glyphs.py（字形 / PNG 同步）',
+         [py, os.path.join(t, 'verify_glyphs.py'), a.out, '--dir', a.glyph_dir]),
+        ('patch_disclaimer_page.py（免责页）',
+         [py, os.path.join(t, 'patch_disclaimer_page.py'), a.out, '--check']),
+        ('patch_status_bar.py（状态栏文字）',
+         [py, os.path.join(t, 'patch_status_bar.py'), a.out, '--check']),
+        ('patch_title_page.py（标题画面）',
+         [py, os.path.join(t, 'patch_title_page.py'), a.out, '--check']),
+    ]
+    results = [(label, run_check(cmd)) for label, cmd in checks]
+    ok = all(rc == 0 for _, rc in results)
+    print('\n=== 自检结果 ===')
+    for label, rc in results:
+        print(f'  {"✓" if rc == 0 else "✗"} {label}')
     print(f'=== self-check {"PASSED" if ok else "FAILED"} '
           f'in {time.time() - t_check:.1f}s ===', flush=True)
     if not ok:
-        raise SystemExit('build self-check failed - see the output above')
+        failed = '、'.join(label.split('（')[0] for label, rc in results if rc)
+        print()
+        print(f'!! 打包失败：{failed} 没通过（上面带 ✗ / PROBLEM 的那几行就是原因）。')
+        print(f'   {a.out} 已经写出，但内容不完整，别拿去测试。')
+        print('   译文超长/缺字快速点名：python3 tools/check_slots.py')
+        print('   改好译文后重新 make；只想复查现有 ROM：make verify')
+        raise SystemExit(1)
 
 
 def run_check(cmd):
-    """Run a self-check tool, streaming its output, and return its exit code."""
-    import subprocess
-    print('$', ' '.join(os.path.basename(c) for c in cmd[:2]), flush=True)
-    p = subprocess.run(cmd)
-    return p.returncode
+    """跑一个自检工具，输出原样透传（失败的行要留在屏幕上），返回退出码。"""
+    print(f'\n$ {" ".join(os.path.basename(c) for c in cmd[:2])}', flush=True)
+    return subprocess.run(cmd).returncode
+
+
+def run_step(label, cmd, out):
+    """跑打包的一步；**失败就立刻中止整个流程**。
+
+    以前每步都是 subprocess.run(check=True)：出错只丢一坨 CalledProcessError 调用栈，
+    而菜单 / 标题 / 字库 / 自检这些后面的步骤还会继续往下跑。现在一旦某步返回非 0，
+    立刻停在这里，并说清「后面一步都没跑」。
+    """
+    print(f'\n== {label}')
+    print('   running:', ' '.join(cmd[1:]), flush=True)
+    rc = subprocess.run(cmd).returncode
+    if rc != 0:
+        print()
+        print(f'!! 打包中止：{label} 失败（退出码 {rc}）。')
+        print(f'   这一步之后的流程一步都没跑；{out} 不是完整版本，别拿去测试。')
+        raise SystemExit(1)
+    return rc
 
 
 if __name__ == '__main__':

@@ -40,6 +40,33 @@ def norm_tr(t):
     decodes them as [FFF2].  Normalize the translation to the same shape."""
     return re.sub(r'\\x([0-9A-Fa-f]{4})', lambda m: '[' + m.group(1).upper() + ']', t)
 
+
+def code_len(s):
+    """码位数——与 import_script.encode_text 同一约定（\\xNNNN 记 1 个）。"""
+    return len(re.sub(r'\\x[0-9A-Fa-f]{4}', 'X', s))
+
+
+def why(row, want, got):
+    """一句话说清这一行为什么和主表对不上（给人看，不参与判定）。
+
+    打包只把译文写回**原槽位**（n_codes + 1 个 u16，含结尾 00）：装不下就跳过、
+    保留日文原文。所以「ROM 里还是日文」这件事，几乎总是译文超长——直接说明白。
+    """
+    if got is None:
+        return 'ROM 里读不到这条字符串（偏移或表结构变了）'
+    if row is not None and got == (row.get('jp_text') or ''):
+        need = code_len(want) + 1
+        slot = int(row['n_codes']) + 1
+        if need > slot:
+            return (f'没写进去：译文 {need - 1} 码位 + 结尾 = {need}，槽位只有 {slot}'
+                    f'（超 {need - slot}）—— 译文必须改短')
+        return '没写进去（不是超长：可能是缺字/未映射，或该条目没被打包）'
+    return '写进去的内容与主表不一致（不是没写，是写错了）'
+
+
+# 差异最多列这么多行，其余只报数量
+MAX_DIFF_SHOW = 40
+
 FAT = 0x15A000
 BASE = 0x15C000
 FONT_EID = 850
@@ -70,15 +97,21 @@ def main():
                                restkey='extra'))
     want = {}          # entry -> {idx: text}   (offset-table rows)
     want_pool = {}     # entry -> {absolute_offset: (text, slot_words)}
+    row_of = {}        # (eid, idx)    -> 主表行（报告差异时还原上下文）
+    row_of_pool = {}   # (eid, offset) -> 主表行
     for r in rows:
         tr = (r.get('translation') or '').strip()
         if not tr:
             continue
         eid = int(r['entry'])
         if (r.get('extra') or [''])[0] == 'pool':
-            want_pool.setdefault(eid, {})[int(r['offset'])] = (norm_tr(tr), int(r['n_codes']) + 1)
+            off = int(r['offset'])
+            want_pool.setdefault(eid, {})[off] = (norm_tr(tr), int(r['n_codes']) + 1)
+            row_of_pool[(eid, off)] = r
         else:
-            want.setdefault(eid, {})[int(r['idx'])] = norm_tr(tr)
+            idx = int(r['idx'])
+            want.setdefault(eid, {})[idx] = norm_tr(tr)
+            row_of[(eid, idx)] = r
 
     # --- font table sanity ------------------------------------------------
     off, size = struct.unpack_from('<2I', rom, FAT + FONT_EID * 8)
@@ -124,7 +157,7 @@ def main():
 
     # --- round-trip ------------------------------------------------------
     ok = bad = 0
-    samples = []
+    diffs = []          # (label, 主表行, 期望译文, ROM 里读到的)
     # entries whose text lives in a NUL-separated pool (no offset table)
     for eid in sorted(want_pool):
         d = g.load_entry(rom, eid)
@@ -141,8 +174,9 @@ def main():
                 ok += 1
             else:
                 bad += 1
-                if len(samples) < 40:
-                    samples.append(f'e{eid}:@{off:X} want {tr!r} got {got!r}')
+                row = row_of_pool.get((eid, off))
+                diffs.append((f'e{eid}:{row["idx"] if row else "?"} (pool @0x{off:X})',
+                              row, tr, got))
     for eid in sorted(want):
         d = g.load_entry(rom, eid)
         if d is None:
@@ -161,12 +195,18 @@ def main():
                 ok += 1
             else:
                 bad += 1
-                if len(samples) < 40:
-                    samples.append(f'e{eid}:{idx} want {tr!r} got {g_!r}')
+                diffs.append((f'e{eid}:{idx}', row_of.get((eid, idx)), tr, g_))
     print(f'round-trip (table + pool): {ok} strings match, {bad} differ')
-    for s in samples:
-        print('  ', s)
+    for label, row, tr, got in diffs[:MAX_DIFF_SHOW]:
+        print(f'  ✗ {label}   {why(row, tr, got)}')
+        print(f'      主表: {tr}')
+        print(f'      ROM : {got if got is not None else "（读不到这条字符串）"}')
+    if len(diffs) > MAX_DIFF_SHOW:
+        print(f'  … 其余 {len(diffs) - MAX_DIFF_SHOW} 处省略。')
     good = (bad == 0 and not missing)
+    if not good:
+        print('  一行行点名这些差异（1 秒，不用等打包）：')
+        print('      python3 tools/check_slots.py     # 译文超过原槽位的情况')
     print('RESULT:', 'OK' if good else 'PROBLEM')
     # The build's self-check reads this exit code, so a mismatch has to fail the
     # build instead of only printing PROBLEM.

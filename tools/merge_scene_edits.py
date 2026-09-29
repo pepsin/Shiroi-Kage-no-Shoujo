@@ -40,7 +40,9 @@
   * 不得出现假名
   * 标点符号的种类与数量必须与原文一致
   * 用字必须在字库内（work/glyph_map.ext.csv）
-有问题只报警、仍然写盘；合并后请自己决定是否返工。
+**硬规则一违反就中止、不写主表**（打包修不好这三种：超长会被跳过、假名和错标点
+会原样进 ROM）；`缺字` 只提示，因为打包会给新字造字形。
+确实要照原样合并：加 `--no-validate`。
 """
 import argparse
 import csv
@@ -143,27 +145,38 @@ def main():
     print(f'主表 {n_data} 行；scene_lines 里对不上的键 {len(unknown)} 个')
     print(f'需要合并的改动：{len(diffs)} 行')
     for k, e, i, jp, old, new, nc in diffs:
-        flags = []
+        flags, hard = [], []
         if n_codes(new) > nc:
             flags.append(f'超长 {n_codes(new)}>{nc}')
+            hard.append(f'超长：译文 {n_codes(new)} 码位 > 原文 {nc} 码位（打包会跳过这一行）')
         if KANA.search(new):
             flags.append('含假名')
+            hard.append('含假名：译文里出现ぁ-ん/ァ-ヶ（规则 5）')
         if len(PUNCT.findall(new)) != len(PUNCT.findall(jp)):
             flags.append(f'标点 {len(PUNCT.findall(new))}≠{len(PUNCT.findall(jp))}')
+            hard.append(f'标点不符：译文 {len(PUNCT.findall(new))} 个 / 原文 '
+                        f'{len(PUNCT.findall(jp))} 个（规则 1）')
         if ext:
             miss = [c for c in new if c not in ext and c not in '\\x']
             if miss:
-                flags.append('缺字 ' + ''.join(miss))
+                # 不是硬错误：打包会给新字造字形，这里只提醒
+                flags.append('新字 ' + ''.join(miss) + '（打包会补字形）')
         tag = ('  !!! ' + '; '.join(flags)) if flags else ''
         print(f'  {e}:{i}  n={nc}  JP {jp}')
         print(f'        旧 {old}')
         print(f'        新 {new}{tag}')
-        if flags and not a.no_validate:
-            problems.append((e, i, flags))
+        if hard and not a.no_validate:
+            problems.append((k, e, i, hard))
 
     if problems:
-        print(f'\n有 {len(problems)} 行违反 data/translation_rules.md 的硬性规则'
-              '（已照合并，请自行决定是否返工）。')
+        print()
+        print(f'!! {len(problems)} 行违反 data/translation_rules.md 的硬性规则：')
+        for k, e, i, hard in problems[:20]:
+            print(f'   e{e}:{i}（主表第 {k + 1} 行）')
+            for h in hard:
+                print(f'      - {h}')
+        if len(problems) > 20:
+            print(f'   … 其余 {len(problems) - 20} 行省略。')
 
     if stale and diffs and not a.force:
         print()
@@ -176,6 +189,16 @@ def main():
 
     if a.check or a.dry_run:
         return 1 if diffs else 0
+
+    if problems:
+        # 及时停住：硬规则不过就别把坏译文写进主表、更别让它流到打包后面去
+        print()
+        print(f'!! 已中止：{len(problems)} 行硬性规则不过，**主表没有改动**。')
+        print('   后面的槽位预检 / 索引 / 打包一步都没跑。')
+        print('   改好这些行（在 scene_lines 上改就行）再重新 make；')
+        print('   确实要照原样合并：加 --no-validate（不推荐，打包仍会停下）。')
+        return 2
+
     if not diffs:
         print('主表已经是最新的，无需合并。')
         return 0

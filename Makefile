@@ -2,11 +2,12 @@
 #  侦探神宫寺三郎 — 白影的少女 · GBA 汉化工程
 #
 #  一条 `make` 走完全流程：
-#      scene_lines 手改译文 → 合并回主表 → 重建场景索引 → 打包 → 全量校验
+#      scene_lines 手改译文 → 合并回主表 → 槽位预检 → 重建场景索引 → 打包 → 全量校验
 #
 #  常用：
 #      make                 全流程（等于 make all）
-#      make rom             合并→索引→打包（不校验）
+#      make rom             合并→预检→索引→打包（不校验）
+#      make slots           只做槽位预检：译文有没有超过原槽位（1 秒，打包前先跑这个）
 #      make verify          只校验现有 ROM
 #      make scenes          列场景        make show S=3.0     读一个场景
 #      make jump E=500 I=204  生成可在 mGBA 载入的跳转存档
@@ -40,7 +41,7 @@ FRAMES    ?= 1200
 .DEFAULT_GOAL := all
 
 # ---------------------------------------------------------------- 主流程
-.PHONY: all merge index rom verify
+.PHONY: all merge slots index rom verify
 
 # 校验步骤复用同一段配方：`make` 跑完打包后校验，`make verify` 单独跑
 # 注意 verify_glyphs 要读 work/glyph_map.ext.csv（打包中间产物），
@@ -57,24 +58,43 @@ define run_verify
 	@$(PY) tools/verify_glyphs.py "$(ROM)"
 endef
 
-all: rom                                     ## 全流程：合并 → 索引 → 打包 → 校验
+all: rom                                     ## 全流程：合并 → 预检 → 索引 → 打包 → 校验
 	$(run_verify)
 	@echo "== 完成：$(ROM)"
 
 verify:                                      ## 只校验现有 ROM（不重打包）
 	$(run_verify)
 
-rom: index                                   ## 合并→索引→打包（build_rom 内含自检）
-	@echo "== [3/4] 打包 $(ROM)"
-	@$(PY) tools/build_rom.py --out "$(ROM)"
+rom: slots index                             ## 合并→预检→索引→打包（build_rom 内含自检）
+	@echo "== [4/5] 打包 $(ROM)"
+	@$(PY) tools/build_rom.py --out "$(ROM)" --no-preflight || { \
+		echo; \
+		echo "!! 打包失败：$(ROM) 不是完整版本（见上面的「打包中止」或 ✗ 清单）。"; \
+		echo "   出错即停：这一步之后的菜单 / 标题 / 字库 / 自检都没有跑。"; \
+		echo "   译文超长/缺字快速点名：$(PY) tools/check_slots.py"; \
+		echo "   只想复查现有 ROM：make verify"; \
+		exit 1; }
+
+# 打包只把译文写回**原槽位**，译文比原文长就会被静默跳过、留日文原文，
+# 于是两分钟后的 verify_rom 才报差异。这个预检只读 TSV，一秒内按行点名，
+# 让失败发生在打包之前（make slots 也能单独跑）。
+slots: merge                                 ## 预检：译文是否装得进原槽位（1 秒）
+	@echo "== [2/5] 槽位预检（译文码位数 ≤ 原文码位数）"
+	@$(PY) tools/check_slots.py || { \
+		echo; \
+		echo "!! 已停在第 2 步（槽位预检）：没有打包，$(ROM) 未被改动。"; \
+		exit 1; }
 
 index: merge                                 ## 重建 data/scenes.tsv / scene_lines.tsv
-	@echo "== [2/4] 重建场景索引"
+	@echo "== [3/5] 重建场景索引"
 	@$(PY) tools/scene_index.py build
 
 merge:                                       ## 把 scene_lines 上的手改译文合并回主表
-	@echo "== [1/4] 合并 scene_lines → $(MASTER)"
-	@$(PY) tools/merge_scene_edits.py
+	@echo "== [1/5] 合并 scene_lines → $(MASTER)"
+	@$(PY) tools/merge_scene_edits.py || { \
+		echo; \
+		echo "!! 已停在第 1 步（合并）：主表没有被改动，后面的预检 / 索引 / 打包一步都没跑。"; \
+		exit 1; }
 	@$(PY) tools/merge_scene_edits.py --check >/dev/null 2>&1 \
 		&& echo "   两边一致" || { echo "!! 合并后仍不一致，见上面输出"; exit 1; }
 

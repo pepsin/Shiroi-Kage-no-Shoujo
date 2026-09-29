@@ -16,7 +16,8 @@ make            # 合并 scene_lines 手改 → 重建索引 → 打包 → 全�
 只想要其中一步：
 
 ```bash
-make rom        # 合并 → 索引 → 打包（不校验）
+make rom        # 合并 → 槽位预检 → 索引 → 打包（不校验）
+make slots      # 只做槽位预检：译文码位数有没有超过原文（1 秒，出错就先别打包）
 make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库）
 make help       # 全部目标
 ```
@@ -25,11 +26,25 @@ make help       # 全部目标
 
 ```bash
 python3 tools/merge_scene_edits.py      # 若在 data/scene_lines.tsv 上改过译文
+python3 tools/check_slots.py            # 打包前 1 秒预检：译文装不装得进原槽位
 python3 tools/scene_index.py build
 python3 tools/build_rom.py --out "侦探神宫寺三郎 - 白影的少女 (简中).gba"
 python3 tools/verify_rom.py "侦探神宫寺三郎 - 白影的少女 (简中).gba"
 ```
 </details>
+
+> **为什么译文不能比原文长**：打包时译文是**写回原字符串的槽位**的
+> （槽位 = 原文码位数 + 1 个结尾 `00`）。超长的那一行会被跳过、ROM 里保留日文原文，
+> 于是校验必然失败。`make slots` / `tools/check_slots.py` 会一秒内按行点名，
+> 告诉你「e2:145 至少改短 1 个码位」，不用等两分钟的打包。
+
+> **出错即停**：流程里任何一步发现错误都会**立刻停下，绝不带着坏数据往下走**。
+> - 第 1 步合并：译文超长 / 含假名 / 标点不符 → 不写主表，直接停；
+> - 第 2 步预检：译文装不进原槽位 → 不打包，现有 ROM 不动；
+> - 打包中任何一步（回写剧本 / 菜单 / 标题 / 字库）失败 → 停在那一
+>   步，后面的步骤一步都不跑；自检发现问题则报出 ✗ 清单并以非 0 退出。
+>
+> 所以「`make` 通过了」= 合并、预检、打包、六项自检全过。
 
 当前状态：**101,795 行已译**（`verify_rom.py` 全量往返一致），
 并按剧情把全表切成 **795 个场景**（`data/scenes.tsv`，见 `docs/翻译作业流程.md` 第六节），
@@ -38,8 +53,10 @@ python3 tools/verify_rom.py "侦探神宫寺三郎 - 白影的少女 (简中).gb
 > 译文与流程详见 `docs/翻译作业流程.md`；打包细节（扩表 / 编码约定 / 验证）
 > 详见 `docs/打包流程.md`。
 
-**继续翻译/修改译文**：直接改 `data/translation.tsv` 的 `translation` 列，
-再跑一次 `build_rom.py` 即可。
+**继续翻译/修改译文**：推荐改 `data/scene_lines.tsv`（按剧情顺序排好，`make` 会
+合并回主表并顺手做 `translation_rules.md` 的硬性规则校验，不合格就停下不写）；
+也可以直接改 `data/translation.tsv` 的 `translation` 列，再跑一次 `build_rom.py`
+（这条路只有槽位预检，超长会被拦住）。
 
 ---
 

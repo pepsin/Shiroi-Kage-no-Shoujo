@@ -10,6 +10,11 @@ running this tool rewrites the affected FAT entries:
   * each entry is re-compressed with the game's LZ77 and written back; if the
     new compressed block does not fit, it is appended and the FAT is repointed.
 
+译文是**写回原槽位**的（槽位 = 原文码位数 + 1 个结尾 00）：装不进槽位的行会被
+跳过、ROM 里保留日文原文。这属于**错误**——本工具会在写 ROM **之前**中止并
+退出码 1，绝不带着这种缺陷往下走（调用方 build_rom.py 也会立刻停在「回写剧本」，
+不再跑菜单 / 标题 / 字库 / 自检）。先跑 tools/check_slots.py 能一秒内点名这些行。
+
 Usage:
   import_script.py --master data/translation.tsv \
                    --rom "Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba" \
@@ -118,11 +123,11 @@ def rebuild_entry(d, translations, rev, kind):
     too_long = []
     for idx, text in sorted(translations.items()):
         if idx >= len(vals):
-            too_long.append((idx, 'no such string slot'))
+            too_long.append((idx, '没有这个字符串槽位（下标超出该条目的字符串数）'))
             continue
         off = base + vals[idx]
         if off + 2 > len(d):
-            too_long.append((idx, 'offset out of range'))
+            too_long.append((idx, '偏移超出条目数据范围'))
             continue
         # original slot: codes plus the 0x0000 terminator
         n = 0
@@ -132,10 +137,11 @@ def rebuild_entry(d, translations, rev, kind):
         new_codes, miss = encode_text(text, rev)
         missing_all += miss
         if any(c == 0 for c in new_codes):
-            too_long.append((idx, 'contains unmapped character'))
+            too_long.append((idx, '译文含字库/映射里没有的字'))
             continue
         if len(new_codes) + 1 > slot_words:
-            too_long.append((idx, f'needs {len(new_codes) + 1} words, slot has {slot_words}'))
+            too_long.append((idx, f'需要 {len(new_codes) + 1} 码位（含结尾 00），'
+                                  f'槽位只有 {slot_words} 码位'))
             continue
         # write codes, then pad with 0x0000 to the end of the slot
         pos = off
@@ -163,10 +169,11 @@ def rebuild_pool_entry(d, items, rev):
     for off, text, slot in items:
         new_codes, miss = encode_text(text, rev)
         if any(c == 0 for c in new_codes):
-            too_long.append((off, 'contains unmapped character'))
+            too_long.append((off, '译文含字库/映射里没有的字'))
             continue
         if len(new_codes) + 1 > slot:
-            too_long.append((off, f'needs {len(new_codes) + 1} words, slot has {slot}'))
+            too_long.append((off, f'需要 {len(new_codes) + 1} 码位（含结尾 00），'
+                                  f'槽位只有 {slot} 码位'))
             continue
         pos = off
         for c in new_codes:
@@ -193,6 +200,9 @@ def main():
                                restkey='extra'))
     todo = {}
     pool = {}
+    # 报告「被跳过的译文」时，要能说出它对应主表哪一行、原文多长
+    meta = {}          # (eid, idx)    -> (offset, n_codes, jp_text)   表行
+    meta_pool = {}     # (eid, offset) -> (idx, n_codes, jp_text)      pool 行
     empty = 0
     for r in rows:
         tr = (r.get('translation') or '').strip()
@@ -201,10 +211,13 @@ def main():
             continue
         eid = int(r['entry'])
         if (r.get('extra') or [''])[0] == 'pool':
-            pool.setdefault(eid, []).append(
-                (int(r['offset']), tr, int(r['n_codes']) + 1))
+            off = int(r['offset'])
+            pool.setdefault(eid, []).append((off, tr, int(r['n_codes']) + 1))
+            meta_pool[(eid, off)] = (int(r['idx']), int(r['n_codes']), r['jp_text'])
         else:
-            todo.setdefault(eid, {})[int(r['idx'])] = tr
+            idx = int(r['idx'])
+            todo.setdefault(eid, {})[idx] = tr
+            meta[(eid, idx)] = (int(r['offset']), int(r['n_codes']), r['jp_text'])
     print(f'master rows: {len(rows)}; with translation: {len(rows) - empty}; '
           f'entries touched: {len(todo)} table + {len(pool)} pool')
     if not todo and not pool:
@@ -227,6 +240,7 @@ def main():
                for i, (_o, _e) in enumerate(_ents)}
     nfit = napp = 0
     miss_total = 0
+    skips = []          # (eid, kind, key, why, text)：被跳过＝ROM 里仍是日文
     eids = sorted(set(todo) | set(pool))
     t_start = time.time()
     print(f'importing {len(eids)} entries (table rows for {len(todo)}, '
@@ -242,11 +256,14 @@ def main():
             if nd is None:
                 print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {err}'); continue
             too_long += tl
+            skips += [(eid, 'table', k, why, todo[eid].get(k, '')) for k, why in tl]
         if eid in pool:
             nd, err, tl = rebuild_pool_entry(nd, pool[eid], rev)
             if nd is None:
                 print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {err}'); continue
             too_long += tl
+            text_of = {o: t for o, t, _ in pool[eid]}
+            skips += [(eid, 'pool', o, why, text_of.get(o, '')) for o, why in tl]
         n_skip = len(too_long)
         enc = lz77.compress(nd)
         off, size = struct.unpack_from('<2I', rom, g.FAT + eid * 8)
@@ -255,7 +272,7 @@ def main():
         else:
             where = 'appended'
         if n_skip:
-            print(f'  [{n_done}/{len(eids)}] e{eid:04d}: {n_skip} strings skipped, '
+            print(f'  [{n_done}/{len(eids)}] e{eid:04d}: !! {n_skip} 处译文被跳过，'
                   f'e.g. {too_long[:2]}')
         gap = None
         if nxt_off.get(eid) is not None:
@@ -294,13 +311,50 @@ def main():
               f'{dt:5.2f}s total {time.time() - t_start:6.1f}s{slow}', flush=True)
     print(f'entries patched in place: {nfit}; appended: {napp}; unmapped chars: {miss_total}; '
           f'{time.time() - t_start:.1f}s')
+
+    # 被跳过的译文＝ROM 里保留日文原文，verify_rom 必然报「与主表不一致」。
+    # 之前只在中途打一行 "N strings skipped"，淹没在几百行进度里，所以这里再汇总一次。
+    if skips:
+        print()
+        print(f'!! {len(skips)} 处译文没有写进 ROM（原槽位装不下），ROM 里保留的是日文原文：')
+        for eid, kkind, key, why, text in skips[:20]:
+            if kkind == 'pool':
+                idx, nc, jp = meta_pool.get((eid, key), ('?', '?', ''))
+                where = f'e{eid} pool @0x{key:X}'
+            else:
+                off, nc, jp = meta.get((eid, key), ('?', '?', ''))
+                where = f'e{eid} idx {key}'
+            print(f'   {where}   原文 {nc} 码位   {why}')
+            print(f'      jp  : {jp}')
+            print(f'      译文: {text}')
+        if len(skips) > 20:
+            print(f'   … 其余 {len(skips) - 20} 处省略。')
+        print('   修法：把译文改短到不超过原文码位数（见 data/translation_rules.md）；')
+        print('         只看这几行：python3 tools/check_slots.py')
+        print()
+        if a.report_only:
+            print('!! 有上面这些问题（--report-only：没有写任何 ROM）。')
+        else:
+            print(f'!! 已中止：没有写 {a.out}。')
+            print('   后面的菜单 / 标题 / 字库 / 自检一步都不会跑；先改短译文再重新打包。')
+        return 1
+
     if a.report_only:
-        return
+        print('OK：所有译文都写得进去（--report-only：没有写任何 ROM）。')
+        return 0
     if not a.out:
         raise SystemExit('--out is required unless --report-only')
-    open(a.out, 'wb').write(rom)
+    try:
+        with open(a.out, 'wb') as f:
+            f.write(rom)
+    except OSError as e:
+        # 路径写不进去（目录、权限、磁盘满）也别丢调用栈：清楚地说停在哪、没写成功
+        print(f'!! 写 ROM 失败：{a.out}：{e}')
+        print('   已中止，没有写出 ROM；后面的菜单 / 标题 / 字库 / 自检都没跑。')
+        return 1
     print(f'wrote {a.out} ({len(rom)} bytes)')
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
