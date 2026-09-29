@@ -18,7 +18,8 @@ make            # 合并 scene_lines 手改 → 重建索引 → 打包 → 全�
 ```bash
 make rom        # 合并 → 槽位预检 → 索引 → 打包（不校验）
 make slots      # 只做槽位预检：译文码位数有没有超过原文（1 秒，出错就先别打包）
-make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库）
+make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库 / 引擎关键区）
+make save       # 验证存档会不会被游戏判成「无法读取」（make save SAV=x.sav 指定文件）
 make help       # 全部目标
 ```
 
@@ -30,6 +31,7 @@ python3 tools/check_slots.py            # 打包前 1 秒预检：译文装不�
 python3 tools/scene_index.py build
 python3 tools/build_rom.py --out "侦探神宫寺三郎 - 白影的少女 (简中).gba"
 python3 tools/verify_rom.py "侦探神宫寺三郎 - 白影的少女 (简中).gba"
+python3 tools/save_check.py --selftest  # 存档格式 / 校验和
 ```
 </details>
 
@@ -45,6 +47,12 @@ python3 tools/verify_rom.py "侦探神宫寺三郎 - 白影的少女 (简中).gb
 >   步，后面的步骤一步都不跑；自检发现问题则报出 ✗ 清单并以非 0 退出。
 >
 > 所以「`make` 通过了」= 合并、预检、打包、六项自检全过。
+
+> **存档与汉化互不影响**：游戏判断「存档损坏」只看存档自己的魔数 `0x0DECADE0`
+> 加加法校验和，**不读 ROM**；存档里也不含字形码位文本。汉化要守的是 ROM 侧两条：
+> 字符串槽位不许移位、剧本分发表（`file 0x15C004`，在 e0 数据里）不许被覆盖——
+> 两条都在打包自检里（`verify_writes` 的写入范围、`verify_rom` 的「引擎关键区」）。
+> 格式与「损坏」判定链见 `docs/存档格式.md`；检查存档用 `make save`。
 
 当前状态：**101,795 行已译**（`verify_rom.py` 全量往返一致），
 并按剧情把全表切成 **795 个场景**（`data/scenes.tsv`，见 `docs/翻译作业流程.md` 第六节），

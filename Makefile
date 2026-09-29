@@ -36,6 +36,7 @@ S         ?=
 T         ?=
 STATE     ?=
 KEYS      ?=
+SAV       ?=
 FRAMES    ?= 1200
 
 .DEFAULT_GOAL := all
@@ -99,9 +100,12 @@ merge:                                       ## 把 scene_lines 上的手改译�
 		&& echo "   两边一致" || { echo "!! 合并后仍不一致，见上面输出"; exit 1; }
 
 # ---------------------------------------------------------------- 检查
-.PHONY: check lint qa scenes show entries find
+.PHONY: check lint qa scenes show entries find save
 check:                                       ## 索引完整性（覆盖 / 顺序）
 	@$(PY) tools/scene_index.py check
+
+save:                                        ## 验证存档会不会被游戏判成「无法读取」（SAV=x.sav 指定文件）
+	@$(PY) tools/save_check.py $(if $(SAV),$(SAV),--selftest)
 
 lint:                                        ## 文风 lint（可用 LINT_ARGS= 传参）
 	@$(PY) tools/style_lint.py --top $(TOP) $(LINT_ARGS)
