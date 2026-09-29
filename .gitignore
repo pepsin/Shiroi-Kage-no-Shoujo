@@ -41,12 +41,26 @@ env/
 htmlcov/
 
 # ---------- 运行时缓存 / 构建产物 ----------
-# work/cache/ 等由工具自动重建，见 README「可安全删除」
+# work/ 里全是可再生的中间产物（截图、即时存档、RAM dump、批处理导出、
+# 字体中间物、编译好的 harness…）。跑 make 会自动重建，整个目录可直接删。
 /work/
 /build/
 /dist/
 /out/
 *.log
+
+# ---------- 无头 harness 的原始截图 ----------
+# gbarun_dbg 直接写 .ppm，核对排版时才转成 .png（png 也不提交，见下）
+*.ppm
+/shot_*.png
+/play_*.png
+/state_*.png
+
+# ---------- iCloud 不同步目录 / 生成物指纹 ----------
+# *.nosync 是「让 iCloud 跳过同步」的命名约定（见 docs/字形PNG底稿.md）
+*.nosync/
+# scene_index.py build 写的主表 sha1，merge_scene_edits.py 用它判断索引是否过期
+*.sig
 
 # ---------- 编译产物（C 工具等） ----------
 *.o
