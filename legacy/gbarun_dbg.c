@@ -489,8 +489,30 @@ static int pcOk(struct ARMCore* cpu) {
 	return pc >= g_logPc0 && pc < g_logPc1;
 }
 
+/* GBARUN_TRACE="loFrame:hiFrame" (+ GBARUN_LOGPC=loPC:hiPC) - executed-path trace */
+static FILE* g_traceF;
+static long g_traceF0, g_traceF1;
+static uint32_t g_tracePc0, g_tracePc1;
+
+/* Log one trace line, tagging ARM (32-bit) fetches separately from Thumb ones. */
+static uint32_t g_traceLastPc;
+
+static void traceFetch(struct ARMCore* cpu, const char* width) {
+	uint32_t* lastPc = &g_traceLastPc;
+	if (!g_traceF) return;
+	uint32_t pc = cpu->gprs[15] & (width[0] == 'A' ? ~3u : ~1u);
+	if (g_frameNo < g_traceF0 || g_frameNo >= g_traceF1) return;
+	if (pc < g_tracePc0 || pc >= g_tracePc1) return;
+	if (!getenv("GBARUN_TRACE_ALL") && pc == *lastPc) return;   /* dedup tight loops */
+	*lastPc = pc;
+	fprintf(g_traceF, "f=%ld %s pc=%08X lr=%08X r0=%08X r1=%08X r2=%08X r3=%08X\n",
+	        g_frameNo, width, pc, cpu->gprs[14], cpu->gprs[0], cpu->gprs[1],
+	        cpu->gprs[2], cpu->gprs[3]);
+}
+
 static uint32_t wrap_load32(struct ARMCore* cpu, uint32_t a, int* c) {
 	uint32_t v = orig_load32(cpu, a, c);
+	traceFetch(cpu, "A32");
 	if (g_memLog && a >= g_logLoad0 && a < g_logLoad1 && pcOk(cpu))
 		fprintf(g_memLog, "LD32 a=0x%08X v=0x%08X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
 		        a, v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
@@ -498,6 +520,7 @@ static uint32_t wrap_load32(struct ARMCore* cpu, uint32_t a, int* c) {
 }
 static uint32_t wrap_load16(struct ARMCore* cpu, uint32_t a, int* c) {
 	uint32_t v = orig_load16(cpu, a, c);
+	traceFetch(cpu, "T16");
 	if (g_memLog && a >= g_logLoad0 && a < g_logLoad1 && pcOk(cpu))
 		fprintf(g_memLog, "LD16 a=0x%08X v=0x%04X pc=0x%08X lr=0x%08X r0=0x%08X r1=0x%08X r2=0x%08X r3=0x%08X f=%ld\n",
 		        a, v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
@@ -544,18 +567,27 @@ static uint32_t wrap_loadMultiple(struct ARMCore* cpu, uint32_t base, int mask,
 static uint32_t wrap_storeMultiple(struct ARMCore* cpu, uint32_t base, int mask,
                                    enum LSMDirection dir, int* c) {
 	if (g_memLog && pcOk(cpu)) {
+		int n = 0;
+		for (int i = 0; i < 16; ++i) if (mask & (1 << i)) ++n;
 		for (int i = 0; i < 16; ++i) {
 			uint32_t a = base + 4 * i;
-			if ((mask & (1 << i)) && a >= g_logStore0 && a < g_logStore1)
-				fprintf(g_memLog, "STM  a=0x%08X pc=0x%08X lr=0x%08X f=%ld\n",
-				        a, cpu->gprs[15], cpu->gprs[14], g_frameNo);
+			if (dir == LSM_DECREMENT) a = base - 4 * n + 4 * i + 4;   /* DA 起点 */
+			if (mask & (1 << i)) {
+				uint32_t a2 = a;
+				if (dir == LSM_DECREMENT) a2 = a - 4;               /* DB 再 -4，保守两个都算 */
+				for (int k = 0; k < 2; ++k) {
+					uint32_t aa = k ? a2 : a;
+					if (aa >= g_logStore0 && aa < g_logStore1)
+						fprintf(g_memLog, "STM  a=0x%08X base=0x%08X mask=0x%04X dir=%d pc=0x%08X lr=0x%08X f=%ld\n",
+						        aa, base, mask, (int) dir, cpu->gprs[15], cpu->gprs[14], g_frameNo);
+				}
+			}
 		}
 	}
 	return orig_storeMultiple(cpu, base, mask, dir, c);
 }
 
-static void installTracer(struct GBA* g) {
-	struct ARMMemory* m = &g->cpu->memory;
+static void installTracer(struct GBA* g) {	struct ARMMemory* m = &g->cpu->memory;
 	orig_load32 = m->load32; orig_load16 = m->load16; orig_load8 = m->load8;
 	orig_store32 = m->store32; orig_store16 = m->store16; orig_store8 = m->store8;
 	orig_loadMultiple = m->loadMultiple; orig_storeMultiple = m->storeMultiple;
@@ -608,6 +640,18 @@ int main(int argc, char** argv) {
 		if (ls) parseRange(ls, &g_logStore0, &g_logStore1);
 		if (lp) parseRange(lp, &g_logPc0, &g_logPc1);
 		g_memLog = fopen("/tmp/gbarun_mem.txt", "wb");
+	}
+	{
+		const char* tr = getenv("GBARUN_TRACE");
+		if (tr) {
+			uint32_t f0 = 0, f1 = 0x7FFFFFFF;
+			parseRange(tr, &f0, &f1);
+			g_traceF0 = (long) f0; g_traceF1 = (long) f1;
+			g_tracePc0 = 0; g_tracePc1 = 0xFFFFFFFF;
+			if (lp) parseRange(lp, &g_tracePc0, &g_tracePc1);
+			g_traceLastPc = 0;   /* 每次运行重置，否则本进程内的去重会误折叠 */
+			g_traceF = fopen("/tmp/gbarun_trace.txt", "wb");
+		}
 	}
 	if (getenv("GBARUN_POKE")) parsePokeList(getenv("GBARUN_POKE"));
 	if (getenv("GBARUN_READ")) parseSimpleList(getenv("GBARUN_READ"), 1);
@@ -719,34 +763,65 @@ int main(int argc, char** argv) {
 		renderer->outputBuffer = g_frame;
 		renderer->outputBufferStride = WIDTH;
 	}
-	if (g_memLog) installTracer(gba);
+	if (g_memLog || g_traceF) installTracer(gba);
 
 	/* GBARUN_SAMPLE=N - 单步 N 次，统计 PC（4 KB 一档）并打印最近走过的 PC 序列。
 	 * 用来回答「游戏卡在哪」，例如卡死/对话不推进时。放在状态加载之后，
 	 * 所以可以对着一份 .ssN 采样。采样完直接退出（不再跑帧）。 */
+	/* GBARUN_DEBUG_READ="addr:len[;...]" - cheap read right after the state load,
+	 * before anything runs.  Unlike GBARUN_READ this never touches the per-frame
+	 * machinery, so it stays fast even when the emulator is crawling. */
+	{
+		const char* dr = getenv("GBARUN_DEBUG_READ");
+		if (dr) {
+			char buf[512];
+			snprintf(buf, sizeof(buf), "%s", dr);
+			for (char* tok = strtok(buf, ";"); tok; tok = strtok(NULL, ";")) {
+				char* c = strchr(tok, ':');
+				uint32_t addr = (uint32_t) strtoul(tok, NULL, 0);
+				int len = c ? atoi(c + 1) : 4;
+				hexDump(addr, len);
+			}
+		}
+	}
+
 	if (getenv("GBARUN_SAMPLE")) {
 		int nsamp = atoi(getenv("GBARUN_SAMPLE"));
 		if (nsamp <= 0) nsamp = 2000000;
+		/* GBARUN_SAMPLE_RANGE=lo:hi - only count PCs inside [lo,hi).
+		 * GBARUN_SAMPLE_KEY="A" - hold that key down for the whole sampling window
+		 * (samples the "advance was requested" state instead of idle). */
+		uint32_t slo = 0, shi = 0x10000000;
+		const char* srange = getenv("GBARUN_SAMPLE_RANGE");
+		if (srange) parseRange(srange, &slo, &shi);
 		for (int f = 0; f < 60; ++f) core->runFrame(core);   /* 先跑几帧进入稳态 */
+		int skey = -1;
+		const char* sk = getenv("GBARUN_SAMPLE_KEY");
+		if (sk) skey = keyByName(sk);
 		enum { NB = 0x10000 };                              /* 4 KB 一档，覆盖 0..0x0FFFFFFF */
 		unsigned int* hist = calloc(NB, sizeof(unsigned int));
 		uint32_t* rec = calloc(128, sizeof(uint32_t));
 		int nrec = 0;
+		unsigned int nIn = 0;
 		for (int i = 0; i < nsamp; ++i) {
+			if (skey >= 0) core->setKeys(core, skey);
 			core->step(core);
 			uint32_t pc = gba->cpu->gprs[15] & 0x0FFFFFFF;
+			if (pc < slo || pc >= shi) continue;
+			++nIn;
 			++hist[(pc >> 12) & (NB - 1)];
 			if (nrec == 0 || rec[(nrec - 1) & 127] != pc) {
 				rec[nrec & 127] = pc;
 				++nrec;
 			}
 		}
+		if (srange) fprintf(stderr, "[sample] 范围 0x%08X..0x%08X 命中 %u 步\n", slo, shi, nIn);
 		fprintf(stderr, "[sample] %d 步，PC 直方图（4 KB 一档，top 20）:\n", nsamp);
 		for (int k = 0; k < 20; ++k) {
 			int bi = -1; unsigned int bv = 0;
 			for (int j = 0; j < NB; ++j) if (hist[j] > bv) { bv = hist[j]; bi = j; }
 			if (bi < 0 || !bv) break;
-			fprintf(stderr, "   %06X000  %8u  (%.1f%%)\n", bi, bv, 100.0 * bv / nsamp);
+			fprintf(stderr, "   %06X000  %8u  (%.1f%%)\n", bi, bv, 100.0 * bv / (nIn ? nIn : 1));
 			hist[bi] = 0;
 		}
 		fprintf(stderr, "[sample] 最近走过的 PC（去重，最后 64 个）:\n");
@@ -849,7 +924,46 @@ int main(int argc, char** argv) {
 		}
 		if (keys != held) { held = keys; core->setKeys(core, held); }
 
-		core->runFrame(core);
+		/* GBARUN_TRACE 真正实现：区间内逐指令 step 取 PC；区间外整帧跑。
+		 * （挂在内存钩子上的旧实现只能抓到取指子集，不是执行流。） */
+		if (g_traceF && f >= g_traceF0 && f < g_traceF1) {
+			long n = 0;
+			for (int si = 0; si < 4000000; ++si) {
+				uint32_t pc = gba->cpu->gprs[15] & ~1u;
+				if (pc >= g_tracePc0 && pc < g_tracePc1) {
+					fprintf(g_traceF, "%08X %08X %08X %08X %08X %08X %08X\n", pc, gba->cpu->gprs[14], gba->cpu->gprs[0], gba->cpu->gprs[1], gba->cpu->gprs[2], gba->cpu->gprs[3], gba->cpu->gprs[13]);
+					++n;
+				}
+				unsigned before = gba->video.frameCounter;
+				core->step(core);
+				if (gba->video.frameCounter != before) break;
+			}
+			fprintf(stderr, "[trace] f=%ld 区间内 %ld 条指令\n", f, n);
+			fflush(g_traceF);
+		} else {
+			core->runFrame(core);
+		}
+
+		/* GBARUN_FRAME_READ="addr:len@frame[;...]" - 指定帧的一次性读数（很便宜，
+		 * 在模拟器被拖慢时也能用，替代逐帧 GBARUN_READ）。 */
+		{
+			const char* fr = getenv("GBARUN_FRAME_READ");
+			if (fr) {
+				char fbuf[1024];
+				snprintf(fbuf, sizeof(fbuf), "%s", fr);
+				for (char* tok = strtok(fbuf, ";"); tok; tok = strtok(NULL, ";")) {
+					char* at = strchr(tok, '@');
+					long want = at ? strtol(at + 1, NULL, 0) : -1;
+					if (want != f) continue;
+					if (at) *at = 0;
+					char* c = strchr(tok, ':');
+					uint32_t addr = (uint32_t) strtoul(tok, NULL, 0);
+					int len = c ? atoi(c + 1) : 4;
+					printf("[fread] f=%ld ", f);
+					hexDump(addr, len);
+				}
+			}
+		}
 
 		if (shotEvery > 0 && f > 0 && (f % shotEvery) == 0) {
 			char p[1024];

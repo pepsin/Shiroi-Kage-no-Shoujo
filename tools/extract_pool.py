@@ -41,6 +41,37 @@ SKIP = {
 }
 
 
+def branch_table_span(d):
+    """[start, end) of the entry's trailing branch-target table, or None.
+
+    Script entries carry a bytecode jump table at the very end: a u32 at
+    pool+0x11 (pool offset comes from the header field at +0x10) points at a
+    u16 count followed by that many (u16 id, u32 target) pairs.  Its bytes read
+    as bogus two-code "strings"; writing translations over the targets sends
+    the scene's branches into the wrong bytecode and deadlocks the game, so
+    this region must never be exported as text.
+    """
+    if len(d) < 0x14:
+        return None
+    pool = struct.unpack_from('<I', d, 0x10)[0]
+    if pool + 0x15 > len(d):
+        return None
+    t = struct.unpack_from('<I', d, pool + 0x11)[0]
+    start = pool + t
+    if start + 2 > len(d):
+        return None
+    cnt = struct.unpack_from('<H', d, start)[0]
+    if cnt == 0 or cnt > 40:
+        return None
+    end = start + 2 + 6 * cnt
+    if end > len(d):
+        return None
+    for i in range(cnt):
+        if struct.unpack_from('<I', d, start + 2 + 6 * i + 2)[0] + pool >= len(d):
+            return None
+    return start, end
+
+
 def scan_pools(d, dec):
     """Return [(offset, text, words)] for EVERY NUL-terminated string run in d.
 
@@ -164,6 +195,11 @@ def main():
         r = scan_pools(d, dec)
         if not r:
             continue
+        span = branch_table_span(d)
+        if span:
+            r = [row for row in r if not (span[0] <= row[0] < span[1])]
+            if not r:
+                continue
         chars = sum(len(t) for _, t, _ in r)
         got = 0
         seen = known.get(str(eid), set())

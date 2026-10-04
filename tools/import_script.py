@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import gbtext as g
 import export_script as ex
 import lz77
+from extract_pool import branch_table_span
 
 TEXTDIR = os.path.join(ROOT, 'data')
 
@@ -166,7 +167,12 @@ def rebuild_pool_entry(d, items, rev):
     """
     out = bytearray(d)
     too_long = []
+    span = branch_table_span(d)
     for off, text, slot in items:
+        if span and off < span[1] and off + 2 * slot > span[0]:
+            too_long.append((off, '该偏移在条目尾部的分支跳转表里，不是文本；'
+                                  '写入会把剧情分支指错、游戏走死'))
+            continue
         new_codes, miss = encode_text(text, rev)
         if any(c == 0 for c in new_codes):
             too_long.append((off, '译文含字库/映射里没有的字'))
