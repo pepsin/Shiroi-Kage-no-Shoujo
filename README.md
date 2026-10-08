@@ -3,6 +3,21 @@
 基于 **日文原版 ROM** 的完整汉化工具链与翻译工作区。
 （原版：`Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba`，8 MB，8 位游戏码 BT3J）
 
+**原版 ROM 校验**（合作前请先核对，用错 ROM 全部对不上）：
+
+| 项 | 值 |
+|---|---|
+| 文件大小 | 8,388,608 字节（8 MB） |
+| CRC32 | `3C21D7E0` |
+| SHA256 | `bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2` |
+
+自检命令（macOS / Linux）：
+
+```bash
+shasum -a 256 "Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba"
+python3 -c "import zlib;print('%08X'%(zlib.crc32(open('Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba','rb').read())&0xFFFFFFFF))"
+```
+
 ---
 
 ## 一、现在就能做的事
