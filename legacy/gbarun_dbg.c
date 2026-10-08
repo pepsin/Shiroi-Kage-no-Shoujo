@@ -551,12 +551,25 @@ static void wrap_store8(struct ARMCore* cpu, uint32_t a, int8_t v, int* c) {
 		        a, (uint8_t) v, cpu->gprs[15], cpu->gprs[14], cpu->gprs[0], cpu->gprs[1], cpu->gprs[2], cpu->gprs[3], g_frameNo);
 	orig_store8(cpu, a, v, c);
 }
+/* LDM/STM 第 r 个寄存器（按寄存器号升序的第 r 个置位）的传输地址：
+   IA=base+4r  IB=base+4r+4  DA=base-4n+4+4r  DB=base-4n+4r */
+static uint32_t lsmAddr(uint32_t base, int mask, enum LSMDirection dir, int reg) {
+	int n = 0, r = 0;
+	for (int i = 0; i < 16; ++i) if (mask & (1 << i)) ++n;
+	for (int i = 0; i < reg; ++i) if (mask & (1 << i)) ++r;
+	switch (dir) {
+	case LSM_IB: return base + 4 * r + 4;
+	case LSM_DA: return base - 4 * n + 4 + 4 * r;
+	case LSM_DB: return base - 4 * n + 4 * r;
+	default:     return base + 4 * r;
+	}
+}
 static uint32_t wrap_loadMultiple(struct ARMCore* cpu, uint32_t base, int mask,
                                   enum LSMDirection dir, int* c) {
 	uint32_t v = orig_loadMultiple(cpu, base, mask, dir, c);
 	if (g_memLog && pcOk(cpu)) {
 		for (int i = 0; i < 16; ++i) {
-			uint32_t a = base + 4 * i;
+			uint32_t a = lsmAddr(base, mask, dir, i);
 			if ((mask & (1 << i)) && a >= g_logLoad0 && a < g_logLoad1)
 				fprintf(g_memLog, "LDM  a=0x%08X v=0x%08X pc=0x%08X lr=0x%08X f=%ld\n",
 				        a, orig_load32(cpu, a, c), cpu->gprs[15], cpu->gprs[14], g_frameNo);
@@ -567,21 +580,11 @@ static uint32_t wrap_loadMultiple(struct ARMCore* cpu, uint32_t base, int mask,
 static uint32_t wrap_storeMultiple(struct ARMCore* cpu, uint32_t base, int mask,
                                    enum LSMDirection dir, int* c) {
 	if (g_memLog && pcOk(cpu)) {
-		int n = 0;
-		for (int i = 0; i < 16; ++i) if (mask & (1 << i)) ++n;
 		for (int i = 0; i < 16; ++i) {
-			uint32_t a = base + 4 * i;
-			if (dir == LSM_DECREMENT) a = base - 4 * n + 4 * i + 4;   /* DA 起点 */
-			if (mask & (1 << i)) {
-				uint32_t a2 = a;
-				if (dir == LSM_DECREMENT) a2 = a - 4;               /* DB 再 -4，保守两个都算 */
-				for (int k = 0; k < 2; ++k) {
-					uint32_t aa = k ? a2 : a;
-					if (aa >= g_logStore0 && aa < g_logStore1)
-						fprintf(g_memLog, "STM  a=0x%08X base=0x%08X mask=0x%04X dir=%d pc=0x%08X lr=0x%08X f=%ld\n",
-						        aa, base, mask, (int) dir, cpu->gprs[15], cpu->gprs[14], g_frameNo);
-				}
-			}
+			uint32_t a = lsmAddr(base, mask, dir, i);
+			if ((mask & (1 << i)) && a >= g_logStore0 && a < g_logStore1)
+				fprintf(g_memLog, "STM  a=0x%08X base=0x%08X mask=0x%04X dir=%d pc=0x%08X lr=0x%08X f=%ld\n",
+				        a, base, mask, (int) dir, cpu->gprs[15], cpu->gprs[14], g_frameNo);
 		}
 	}
 	return orig_storeMultiple(cpu, base, mask, dir, c);
