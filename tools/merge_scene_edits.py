@@ -27,6 +27,9 @@
   当时主表的 sha1。如果主表在那之后被直接改过（README 推荐的另一种改法），
   scene_lines 就是旧索引，再拿它合并会把新译文改回去——这时本工具会拒绝写盘，
   提示你先重建索引；确实要用旧索引覆盖时加 `--force`。
+  指纹文件不进 git（见 .gitignore），新克隆的仓库里没有它。**指纹缺失 ≠ 索引过期**：
+  缺失时无法核对出身，按 scene_lines 正常合并，合并成功后自动补写指纹，
+  过期保护从下一次起生效。
 
 用法
 ----
@@ -46,6 +49,7 @@
 """
 import argparse
 import csv
+import hashlib
 import os
 import re
 import sys
@@ -99,6 +103,18 @@ def read_master(path):
     return lines, rows, line_of_key
 
 
+def write_sig(sig_path, master_path, lines_path):
+    """合并后刷新指纹：记录 scene_lines 与哪一版主表一致（格式同 scene_index.py）。"""
+    try:
+        digest = hashlib.sha1(open(master_path, 'rb').read()).hexdigest()
+        with open(lines_path, encoding='utf-8') as f:
+            n = sum(1 for _ in f)
+        with open(sig_path, 'w', encoding='utf-8', newline='') as f:
+            f.write(f'{digest}\t{n}\n')
+    except OSError:
+        pass
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -115,16 +131,18 @@ def main():
     ext = load_ext_chars()
 
     # scene_lines 是不是从「当前这一版主表」生成的？
-    import hashlib
+    # 指纹缺失（新克隆的仓库、指纹被清理）不算过期：无法核对出身，正常合并，
+    # 合并成功后补写指纹，过期保护从下一次起生效。
     stale = None
+    sig_missing = False
     sig_path = a.lines + '.sig'
     if os.path.exists(sig_path):
         want = open(sig_path, encoding='utf-8').read().split('\t')[0].strip()
         now = hashlib.sha1(open(a.master, 'rb').read()).hexdigest()
         if want and want != now:
             stale = (want, now)
-    elif not a.force and not a.check:
-        stale = (None, None)
+    else:
+        sig_missing = True
 
     n_data = sum(1 for r in rows if len(r) >= 7 and r[0].isdigit())
     diffs, unknown, problems = [], [], []
@@ -185,6 +203,8 @@ def main():
         print('   想丢弃 scene_lines 上的改动、只保留主表：')
         print('       python3 tools/scene_index.py build')
         print('   确实要用 scene_lines 覆盖主表：加 --force')
+        print('   想两边都保留：先 `git diff data/translation.tsv` 看主表被改了哪些行，')
+        print('   把这些改动抄进 scene_lines，再加 --force 合并。')
         return 3
 
     if a.check or a.dry_run:
@@ -201,6 +221,10 @@ def main():
 
     if not diffs:
         print('主表已经是最新的，无需合并。')
+        if sig_missing:
+            # 两边一致说明 scene_lines 与当前主表同源，顺手补上指纹，
+            # 之后主表被直接改过时过期保护就能正常生效
+            write_sig(sig_path, a.master, a.lines)
         return 0
 
     bad = 0
@@ -219,7 +243,10 @@ def main():
 
     with open(a.master, 'w', encoding='utf-8', newline='') as f:
         f.writelines(lines)
+    write_sig(sig_path, a.master, a.lines)
     print(f'\n已写回 {a.master}（{len(diffs)} 行，按行原地替换，行尾与其余字段未动）。')
+    if sig_missing:
+        print(f'已补写指纹 {sig_path}：之后主表被直接改过时，过期保护会正常生效。')
     print('接着重建场景索引与 ROM：')
     print('  python3 tools/scene_index.py build')
     print('  python3 tools/build_rom.py --out "侦探神宫寺三郎 - 白影的少女 (简中).gba"')
