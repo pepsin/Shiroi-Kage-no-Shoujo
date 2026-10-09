@@ -129,12 +129,18 @@ find:                                        ## 反查译文：make find T=病�
 	@grep -n -- "$(T)" $(MASTER) | head -20
 
 # ---------------------------------------------------------------- 实机调试
-.PHONY: dbg where play
+.PHONY: dbg play-tool where play
 dbg:                                         ## 编译无头调试 harness（需要 libmgba）
 	@mkdir -p work/bin
 	clang -O2 -o $(DBG) legacy/gbarun_dbg.c \
 		-I$(MGBA_HOME)/include -L$(MGBA_HOME)/lib -lmgba -lm -lpthread
 	@echo "== 已编译 $(DBG)"
+
+play-tool:                                   ## 编译自动通关 harness work/bin/autoplay
+	@mkdir -p work/bin
+	clang -O2 -o work/bin/autoplay legacy/autoplay.c \
+		-I$(MGBA_HOME)/include -L$(MGBA_HOME)/lib -lmgba -lm -lpthread -lz
+	@echo "== 已编译 work/bin/autoplay"
 
 where:                                       ## 看存档演到哪一行：make where STATE=x.ss1
 	@test -n "$(STATE)" || { echo '用法: make where STATE=work/dbg/base.ss1'; exit 2; }
