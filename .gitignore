@@ -111,3 +111,5 @@ htmlcov/
 /legacy/bios/
 /legacy/gba_bios.zip
 *.pre-insert
+
+.env.vars
