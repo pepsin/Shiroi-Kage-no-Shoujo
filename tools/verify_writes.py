@@ -116,6 +116,9 @@ def main():
     for eid in range(2000):
         if eid == 850:                    # the font table is rewritten on purpose
             continue
+        if eid >= g.FAT_ENTRIES:          # 幽灵槽位：FAT 只有 1024 项，超出部分
+            continue                      # 读到的是 e0 数据区（剧本分发表），
+                                          # 译文改动会让那里的"假条目"读数抖动
         if eid in junk_ids:               # unaligned FAT offset = junk slot
             continue
         if not cat_size.get(eid):         # not a real entry (garbage FAT slot)

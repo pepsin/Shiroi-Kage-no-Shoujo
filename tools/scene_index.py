@@ -59,7 +59,25 @@ HEADER = ['entry', 'idx', 'offset', 'n_codes', 'n_bytes', 'jp_text', 'translatio
 SCENE_HEADER = ['scene', 'kind', 'entry', 'idx_from', 'idx_to', 'rows', 'codes',
                 'location', 'speakers', 'note']
 LINE_HEADER = ['rid', 'entry', 'idx', 'scene', 'pos', 'join', 'jp_text',
-               'translation']
+               'translation', 'page', 'sent']
+
+# ---------------------------------------------------------------- 页/句编号
+PAGE_MAP = os.path.join(ROOT, 'data', 'page_map.tsv')
+
+
+def load_page_map():
+    """data/page_map.tsv → {(entry, idx): 'pN' 或 'pN?'（? = 不可信屏）}。
+
+    由 tools/script_vm.py emit 生成（剧本字节码 VM 静态走查；
+    原理见 docs/技术说明.md 第十二节）。文件不存在时返回空表——
+    page 列留空，不影响其它功能。"""
+    pm = {}
+    if not os.path.exists(PAGE_MAP):
+        return pm
+    for r in csv.DictReader(open(PAGE_MAP, encoding='utf-8'), delimiter='\t'):
+        v = r['page'] + ('' if r['trusted'] == '1' else '?')
+        pm[(r['entry'], r['idx'])] = v
+    return pm
 
 # ---------------------------------------------------------------- entry kinds
 # Numeric ranges are the game's own layout: the main story first, then the
@@ -278,6 +296,7 @@ def build(report=False, pool_order='offset'):
     rows = load_master()
     names = load_names()
     base = load_base()
+    page_map = load_page_map()
     by_entry = collections.OrderedDict()
     for r in rows:
         by_entry.setdefault(r['entry'], []).append(r)
@@ -323,6 +342,8 @@ def build(report=False, pool_order='offset'):
     scene_of = {s['scene']: s for s in scenes}
     with open(LINES, 'w', encoding='utf-8', newline='') as f:
         f.write('\t'.join(LINE_HEADER) + '\n')
+        cur_scene = None
+        sent_leader = ''
         for eid, r, sid, pos, seg in lines:
             nxt = seg[pos + 1]['jp_text'] if pos + 1 < len(seg) else ''
             rid = f"{eid}:{r['idx']}"
@@ -330,9 +351,15 @@ def build(report=False, pool_order='offset'):
             cont = '' if (not r['jp_text'] or r['jp_text'][-1] in CLOSERS) else '>'
             prev = seg[pos - 1]['jp_text'] if pos else ''
             joins = '<' if prev and prev[-1] not in CLOSERS and pos else ''
+            # sent：句组归属编号 = 该句首行的 rid（join 链与 tm.py 同规则）
+            if sid != cur_scene or '<' not in joins:
+                sent_leader = rid
+                cur_scene = sid
+            page = page_map.get((eid, r['idx']), '')
             f.write('\t'.join([rid, eid, r['idx'], sid, str(pos),
                                ('' if not cont else cont) + joins,
-                               r['jp_text'], r['translation']]) + '\n')
+                               r['jp_text'], r['translation'],
+                               page, sent_leader]) + '\n')
 
     # 记下「这份 scene_lines 是从哪一版主表生成的」：merge_scene_edits.py 靠它判断
     # 索引是否过期（主表被直接改过时，过期的 scene_lines 不能反向覆盖主表）。
