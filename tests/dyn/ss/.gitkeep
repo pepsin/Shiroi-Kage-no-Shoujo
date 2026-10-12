@@ -1,0 +1,11 @@
+这个目录**只**用来放复现用的起点即时存档（.ss1/.ss2…），内容不入库。
+
+为什么不去 work/：tools/crash_bisect.py 复现「白屏 / EWRAM 清零」型崩溃时必须有一份
+起点存档，而 work/ 会被 `make clean` 整个删掉；同时 .ssN 与 ROM 构建版本绑定、
+本来就不该进版本库（见仓库根 .gitignore 的 *.ss[0-9] 规则）。
+所以：目录入库、内容忽略（本文件是占位符）。
+
+用法示例：
+    cp ~/Downloads/repro.ss1 tests/dyn/ss/
+    python3 tools/crash_bisect.py --state tests/dyn/ss/repro.ss1 \
+            --base work/font_patched.gba --full "侦探神宫寺三郎 - 白影的少女 (简中).gba"

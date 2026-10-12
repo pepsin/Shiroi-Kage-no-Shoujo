@@ -1,38 +1,32 @@
 #!/usr/bin/env python3
-"""romdbg.py - 剧情跳转 / 剧本调试器（配套 work/bin/gbarun_dbg 无头 mGBA harness）。
+"""romdbg.py - 剧本调试器（配套 work/bin/gbarun_dbg 无头 mGBA harness）。
 
-为什么能做「跳转」
-------------------
-本作的剧本资源（FAT 条目）解压后长这样：
+本工具只做**只读**的事：看引擎在演哪一条目/哪一行、按脚本按键复跑、截图。
 
-    偏移 0x000                 头部（各条目完全相同的模板）
-    偏移 0x680                 流程/标志区
-    偏移 0x7A0 起              字符串池；池内先放「行偏移表」（升序 u32），
-                               后面紧跟各行文本（u16 码位 + 0x0000 结束）
+引擎侧的已知事实（详见 docs/调试器.md）
+--------------------------------------
+本作的剧本资源（FAT 条目）解压后：头部 `0x000`、流程/标志区 `0x680`、
+字符串池 `0x7A0` 起（池内先放字节码流，再接行偏移表，最后是各行文本）。
 
-引擎把整条资源解压进 **EWRAM 0x02030300**，并在 0x02003F24 处维护一个描述符：
+引擎把整条资源解压进 **EWRAM 0x02030300**，并在 `0x02003F24` 维护一个描述符：
 
     0x02003F24  u32  字符串池基址（= 0x02030300 + 0x7A0）
     0x02003F2C  u32  资源缓冲基址（= 0x02030300）
-    0x02003F38  u8   本资源有多少行
+    0x02003F34  u32  keyB
+    0x02003F38  u32  keyCount（剧本分发参数，不等于对白行数）
 
 显示时引擎从「行偏移表」里顺序取一项：`行地址 = 池基址 + u32[表项]`，
 游标每次 +4。IWRAM `0x03007C40` 保存「刚读完的表项偏移 + 2」，
 `0x03007C44` 保存「刚取到的行偏移」，所以运行中随时能读出「现在在演第几行」。
 
-于是「跳剧情」= 在 RAM 里动手脚：
-  1. 把目标行（以及后续若干行）的码位写到池里的空闲区；
-  2. 把「下一行要读的表项」改成指向这些新行；
-  3. 存一个 mGBA 即时存档 → 用 mGBA 打开就能从目标剧情继续玩。
-
-这不会恢复当时的背景/分支标志（那是流程区决定的），但**文本、引擎排版、
-翻页/等待逻辑全部是真的**，用来验收译文、复现「按键不推进」这类问题足够了。
+「现在演哪个条目」由 `tools/entry_id.py` 反查（描述符的 keyCount/keyB 当钥匙
+去 ROM 分发表筛候选，再和 RAM 缓冲逐字节比对，见该文件说明）。
 
 用法
 ----
   tools/romdbg.py list  --entry 500                 # 按引擎顺序列出某条目的行
   tools/romdbg.py find  --text 病死的               # 反查某句话在哪个条目/第几行
-  tools/romdbg.py where --state work/dbg/base.ss1   # 报告存档里正在演哪一行
+  tools/romdbg.py where --state work/dbg/base.ss1   # 报告存档里的条目 / 场景 / 行
   tools/romdbg.py base                              # 生成/刷新基准存档（冷启动到第一段对白）
   tools/romdbg.py shot  a.ppm b.png                 # PPM → PNG（放大可选）
   tools/romdbg.py raw ...                           # 直接透传给 gbarun_dbg
@@ -40,27 +34,29 @@
 > 为什么**没有**「跳到任意一行」的功能：唯一的实现方式是「文本级注入」——把目标行
 > 塞进当前已载入剧本的行表。那样背景/在场人物/分支标志都还是当前那一幕的，看着像
 > 跳过去了，其实什么都没验证到，只会误导排查（卡死、花屏、剧情不对都可能被它掩盖）。
-> 要真跳转，得走引擎自己的场景切换，见 `docs/调试器.md` 第五节。
-> 本工具现在只做**只读**的事：看引擎在哪一行、按脚本按键复跑、截图。
+> 要真跳转，得走引擎自己的场景切换，见 `docs/调试器.md` 第四节。
+> 这个坑踩过一次，代码已删除，不要再加回来。
 """
 import argparse
 import csv
 import glob
 import os
-import shutil
 import struct
 import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
-import gbtext as g  # noqa: E402
+import gbtext as g        # noqa: E402
+import entry_id           # noqa: E402
+import scene_lookup       # noqa: E402
 
 CN_ROM = os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba')
 JP_ROM = os.path.join(ROOT, 'Tantei Jinguuji Saburou - Shiroi Kage no Shoujo (Japan).gba')
 HARNESS = os.path.join(ROOT, 'work', 'bin', 'gbarun_dbg')
 EXT_MAP = os.path.join(ROOT, 'work', 'glyph_map.ext.csv')
 DBGDIR = os.path.join(ROOT, 'work', 'dbg')
+ROM_BYTES = b''           # main() 里读入 CN_ROM，给 entry 反查用
 
 # 引擎/工具在 RAM 里的约定（见 docs/调试器.md）
 DESCRIPTOR = 0x02003F24      # pool base, rom ptr, buf base, buf base, ?, rows, ?
@@ -157,6 +153,8 @@ def entry_table(d, limit=4000):
 
 
 def read_row(d, off):
+    if off < 0 or off + 2 > len(d):
+        return []
     n = 0
     while off + 2 * n + 2 <= len(d) and struct.unpack_from('<H', d, off + 2 * n)[0] != 0:
         n += 1
@@ -295,13 +293,30 @@ def cmd_where(a):
     idx = (cur - 2 - rel) // 4 if (rel is not None and cur >= 2) else None
     print(f'池基址      0x{pool:08X}')
     print(f'资源缓冲    0x{buf:08X}')
-    print(f'行数        {rows}')
+    print(f'keyCount    {rows}')
     print(f'行表位置    池内 +0x{rel:X}' if rel is not None else '行表位置    未知')
     print(f'游标        0x{cur:04X}   → 刚读完第 {idx} 项' if idx is not None
           else f'游标        0x{cur:04X}')
     print(f'当前行偏移  0x{line:04X}')
     codes = read_row(ew, pool - 0x02000000 + line)
     print(f'当前行文本  {glyph_text(codes)}')
+
+    # entry 号反查（见 tools/entry_id.py）：把「演到哪一行」挂到项目坐标系上
+    if not (0x02020000 <= pool < 0x02040000 and line < 0x20000):
+        print('条目        引擎未在演剧本（菜单 / 黑屏 / 过场中），跳过反查')
+        return 0
+    m = entry_id.resolve_from_ram(entry_id.RomIndex(ROM_BYTES), ew)[0]
+    if m.eid is None:
+        print(f'条目        反查失败（候选 {len(m.candidates)} 个）')
+        return 0
+    lk = scene_lookup.Lookup()
+    row = lk.at_offset(m.eid, line)
+    scene = row['scene'] if row else lk.best_scene(m.eid, None)
+    conf = '结构区全中' if m.structural_complete else f'结构区 {m.structural_hits}/{m.structural_total}'
+    print(f'条目        e{m.eid}   场景 {scene}   [{conf}，窗口 {m.hits}/{m.total}]')
+    if row:
+        print(f'该行        {row["rid"]}  jp={row["jp"]}')
+        print(f'{"":>12}cn={row["cn"]}')
     return 0
 
 
@@ -417,9 +432,10 @@ def build_parser():
 
 
 def main():
-    global EXT
+    global EXT, ROM_BYTES
     EXT = load_ext_map()
     load_blank_glyphs(CN_ROM)
+    ROM_BYTES = open(CN_ROM, 'rb').read()
     os.makedirs(DBGDIR, exist_ok=True)
     ap = build_parser()
     a = ap.parse_args()

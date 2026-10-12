@@ -37,6 +37,7 @@ STATE     ?=
 KEYS      ?=
 SAV       ?=
 FRAMES    ?= 1200
+AUTOPLAY_ARGS ?=
 
 .DEFAULT_GOAL := all
 
@@ -56,6 +57,8 @@ define run_verify
 	@$(PY) tools/verify_rom.py "$(ROM)"
 	@echo
 	@$(PY) tools/verify_glyphs.py "$(ROM)"
+	@echo
+	@$(PY) tools/check_append_guard.py --rom "$(ROM)"
 endef
 
 all: rom                                     ## 全流程：合并 → 预检 → 索引 → 打包 → 校验
@@ -130,7 +133,9 @@ find:                                        ## 反查译文：make find T=病�
 
 # ---------------------------------------------------------------- 实机调试
 .PHONY: dbg where play
-dbg:                                         ## 编译无头调试 harness（需要 libmgba）
+dbg: $(DBG)                                  ## 编译无头调试 harness（需要 libmgba）
+
+$(DBG): legacy/gbarun_dbg.c
 	@mkdir -p work/bin
 	clang -O2 -o $(DBG) legacy/gbarun_dbg.c \
 		-I$(MGBA_HOME)/include -L$(MGBA_HOME)/lib -lmgba -lm -lpthread
@@ -144,6 +149,29 @@ play:                                        ## 无头复跑并截图：make pla
 	@test -n "$(STATE)" || { echo '用法: make play STATE=x.ss1 KEYS="A@120:4"'; exit 2; }
 	@$(PY) tools/romdbg.py play --state "$(STATE)" --frames $(FRAMES) \
 		--keys "$(KEYS)" --shot-every 60 --out work/dbg/play
+
+# ---------------------------------------------------------------- 动态回归
+.PHONY: test test-unit check-dyn dyn-update dyn-list autoplay
+autoplay: $(DBG)                             ## 独立按键路线回放（无需 AI；未完成路线不会报通关）
+	@$(PY) tools/autoplay.py $(AUTOPLAY_ARGS)
+
+test: test-unit                              ## 自动测试：工具单测 → 静态校验/索引/存档 → 动态回归
+	@$(MAKE) --no-print-directory verify check save
+	@$(MAKE) --no-print-directory check-dyn
+
+test-unit:                                   ## 工具回归测试（不需要 ROM、字库或模拟器）
+	@$(PY) -m unittest discover -s tests -p 'test_*.py' -v
+
+check-dyn: $(DBG)                            ## 动态回归：冷启动复跑固定路线，比对不变量与证据哈希
+	@$(PY) tools/check_append_guard.py --rom "$(ROM)"
+	@$(PY) tools/dyn_check.py run
+
+dyn-update: $(DBG)                           ## 全部检查通过后刷新动态基线（tests/dyn/baseline.json）
+	@$(PY) tools/check_append_guard.py --rom "$(ROM)"
+	@$(PY) tools/dyn_check.py run --update
+
+dyn-list:                                    ## 列出动态检查规格（tests/dyn/checks.json）
+	@$(PY) tools/dyn_check.py list
 
 # ---------------------------------------------------------------- 杂项
 .PHONY: backup clean distclean env help
