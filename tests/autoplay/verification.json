@@ -1,20 +1,59 @@
 {
   "status": "CLEAR",
-  "route_sha256": "f383584a29bbb8df96ffcbb4b87af8efe0e6a6028d28bd81d727e0863b865ec4",
-  "rom_sha256": "1ee46ff45683d80310f7c38cb50d7b9ed1a393f3c0e288e0ad900c9692afbfc1",
+  "route_sha256": "2451b7b4ddbdfc1a1870e67cddb29dffcbe914ad1a62569ca40913c8d7e76001",
+  "rom_sha256": "35e5acdda3b52d79fdf7b683ab3471c703f6983e466cac0e2d233f3cb8db1ae3",
   "segments": 124,
   "frames": 1489738,
   "ending": {
     "description": "完成主线结局与制作人员名单后，显示通关密码 NSYS。",
     "ppm_sha256": "d9e47962125666033dd2dfa0da2bcd174b172cda3e50fcf7367824f981796504"
   },
-  "verified_at_utc": "2026-10-12T11:17:51.284453+00:00",
-  "command": "make autoplay AUTOPLAY_ARGS='--route work/translation-validation/route.final.json --out work/translation-validation/strict-replay'",
+  "verified_at_utc": "2026-10-13T07:04:13.409918+00:00",
+  "command": "make autoplay AUTOPLAY_ARGS='--route work/main-merge-20261013/route.candidate.json --out work/main-merge-20261013/strict-replay-final'",
   "cold_start": true,
   "mgba_version": "0.10.5",
-  "harness_source_sha256": "625075914a1235a645ab353adf043287df5ef7db56b9cd4bc7fbb6620f93ee21",
-  "translation_sha256": "b5026bbf88467ed5651ed21c896c7da32fda717aa97861bba634f4d70c79409d",
+  "harness_source_sha256": "407b7f91e0e12ea41c79dde7f5b9fc7144720304dbc50cfe48b43412b79bfc35",
+  "translation_sha256": "ead584ccfa6d2ed805884cb9daf6e0d3093cdbd9fddc8950c378ac9ef498371c",
   "location_assets_sha256": "ab42d570933f573b8de979db3ffc2b438e1e3e15859b933a7c9b7c93d9ae0407",
-  "unit_tests": 58,
-  "strict_dynamic_checks": 5
+  "unit_tests": 70,
+  "strict_dynamic_checks": 5,
+  "choice_review": {
+    "enabled": true,
+    "screenshots": 1755,
+    "counts": {
+      "inference": 672,
+      "choice": 334,
+      "command": 641,
+      "map": 93,
+      "inventory": 15
+    },
+    "observer_source_sha256": "26a5b3b97696864f748b32a4da75df6142d095ed5e93df646927f696e25b88be",
+    "walkthrough_entry_coverage": {
+      "choice": {
+        "expected_entries": 146,
+        "captured_entries": 148,
+        "missing_entries": []
+      },
+      "command": {
+        "expected_entries": 114,
+        "captured_entries": 115,
+        "missing_entries": []
+      },
+      "inventory": {
+        "expected_entries": 5,
+        "captured_entries": 5,
+        "missing_entries": []
+      },
+      "inference": {
+        "expected_entries": 98,
+        "captured_entries": 99,
+        "missing_entries": []
+      },
+      "map": {
+        "expected_entries": 10,
+        "captured_entries": 10,
+        "missing_entries": []
+      }
+    }
+  }
 }

@@ -38,6 +38,7 @@ KEYS      ?=
 SAV       ?=
 FRAMES    ?= 1200
 AUTOPLAY_ARGS ?=
+VIDEO_ARGS  ?=
 
 .DEFAULT_GOAL := all
 
@@ -156,9 +157,12 @@ play:                                        ## 无头复跑并截图：make pla
 		--keys "$(KEYS)" --shot-every 60 --out work/dbg/play
 
 # ---------------------------------------------------------------- 动态回归
-.PHONY: test test-unit check-dyn dyn-update dyn-list autoplay
+.PHONY: test test-unit check-dyn dyn-update dyn-list autoplay video
 autoplay: $(DBG)                             ## 独立按键路线回放（无需 AI；未完成路线不会报通关）
 	@$(PY) tools/autoplay.py $(AUTOPLAY_ARGS)
+
+video: $(DBG)                                ## 把自动游玩路线录成 mp4（默认第 1–2 天约 5 分钟；需要 ffmpeg）
+	@$(PY) tools/record_video.py $(VIDEO_ARGS)
 
 test: test-unit                              ## 自动测试：工具单测 → 静态校验/索引/存档 → 动态回归
 	@$(MAKE) --no-print-directory verify check save

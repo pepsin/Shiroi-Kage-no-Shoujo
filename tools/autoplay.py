@@ -11,9 +11,11 @@ import json
 from pathlib import Path
 import re
 import sys
+import tempfile
 import uuid
 
 from harness_utils import HarnessError, expand_keys, run_harness
+from choice_review import ChoiceReview
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ROM = ROOT / '侦探神宫寺三郎 - 白影的少女 (简中).gba'
@@ -71,7 +73,8 @@ def load_route(path):
     return route, digest(raw)
 
 
-def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120):
+def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120,
+           capture_choices=False):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     # A previous success report must not survive a failing retry.
@@ -86,6 +89,8 @@ def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120):
         progress = json.loads(journal_path.read_text())
         if progress.get('route_sha256') != route_hash or progress.get('rom_sha256') != actual_rom:
             raise ValueError('断点与当前路线/ROM 不一致')
+        if progress.get('capture_choices', False) != capture_choices:
+            raise ValueError('续跑必须保持相同的选项截图设置；旧运行可用 --no-choice-capture')
         completed = progress.get('completed_segments')
         if type(completed) is not int or not 0 <= completed <= len(route['segments']):
             raise ValueError('断点段号无效')
@@ -95,18 +100,28 @@ def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120):
                 raise ValueError('断点文件损坏或被替换')
     elif journal_path.exists():
         raise ValueError('输出目录已有运行记录；用 --resume 续跑，或另选 --out 目录')
+    review = (ChoiceReview(out / 'choice-review', Path(rom).read_bytes(), route_hash,
+                           completed=completed, resume=resume) if capture_choices else None)
+    preceding_frames = sum(s['frames'] for s in route['segments'][:completed])
     for number, segment in enumerate(route['segments'][completed:], completed + 1):
         prefix = out / f'segment-{number:04d}'
         checkpoint = prefix.with_suffix('.ss1')
-        evidence, _ = run_harness(harness, rom, segment['frames'], segment['keys'],
-                                  prefix, state=previous, save=checkpoint, timeout=timeout)
-        mismatch = [ext for ext, expected in segment['sha256'].items()
-                    if digest(evidence[ext]) != expected]
-        if mismatch:
-            raise HarnessError(f'第 {number} 段偏离已验证路线：{", ".join(mismatch)}；证据：{prefix}')
+        with tempfile.TemporaryDirectory(prefix='.choices-', dir=out) as temporary:
+            raw = Path(temporary) / 'raw'
+            kwargs = {'choice_capture': raw} if review else {}
+            evidence, _ = run_harness(harness, rom, segment['frames'], segment['keys'],
+                                      prefix, state=previous, save=checkpoint, timeout=timeout, **kwargs)
+            mismatch = [ext for ext, expected in segment['sha256'].items()
+                        if digest(evidence[ext]) != expected]
+            if mismatch:
+                raise HarnessError(f'第 {number} 段偏离已验证路线：{", ".join(mismatch)}；证据：{prefix}')
+            if review:
+                review.consume(raw, number, preceding_frames)
         atomic_json(journal_path, {'route_sha256': route_hash, 'rom_sha256': actual_rom,
                                   'completed_segments': number,
+                                  'capture_choices': capture_choices,
                                   'state_sha256': digest(checkpoint.read_bytes())})
+        preceding_frames += segment['frames']
         previous = checkpoint
         print(f'[{number}/{len(route["segments"])}] {segment.get("label", "PASS")}', flush=True)
     # Resume of an already completed run still verifies its final screenshot.
@@ -118,6 +133,8 @@ def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120):
               'segments': len(route['segments']),
               'frames': sum(s['frames'] for s in route['segments']),
               'ending': route.get('ending'), 'screenshot': str(final.resolve())}
+    if review:
+        result['choice_review'] = review.finish(len(route['segments']), status)
     atomic_json(out / 'result.json', result)
     print(json.dumps(result, ensure_ascii=False), flush=True)
     return result
@@ -131,6 +148,7 @@ def main(argv=None):
     p.add_argument('--out', type=Path, help='证据目录；默认每次创建新的运行目录')
     p.add_argument('--resume', action='store_true')
     p.add_argument('--allow-partial', action='store_true', help='调试未完成路线；结果只能为 PARTIAL')
+    p.add_argument('--no-choice-capture', action='store_true', help='关闭默认的选项截图与离线审核页')
     args = p.parse_args(argv)
     try:
         if args.resume and args.out is None:
@@ -141,7 +159,8 @@ def main(argv=None):
         route, fingerprint = load_route(args.route)
         if route['status'] != 'complete' and not args.allow_partial:
             raise ValueError('路线尚未通关；调试请显式使用 --allow-partial')
-        result = replay(route, fingerprint, args.rom, args.harness, args.out, resume=args.resume)
+        result = replay(route, fingerprint, args.rom, args.harness, args.out, resume=args.resume,
+                        capture_choices=not args.no_choice_capture)
     except (OSError, ValueError, HarnessError) as exc:
         print(f'FAIL: {exc}', file=sys.stderr)
         return 1

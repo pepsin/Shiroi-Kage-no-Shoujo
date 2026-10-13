@@ -106,6 +106,36 @@ Path(os.environ['GBARUN_SHOT']).write_bytes(b'P6\\n240 160\\n255\\n' + bytes(240
         self.run_emulator(save=save)
         self.assertEqual(save.read_bytes(), b'new checkpoint')
 
+    def test_choice_capture_requires_harness_support(self):
+        self.write_emulator()
+        with self.assertRaisesRegex(harness.HarnessError, '不支持选项截图'):
+            self.run_emulator(choice_capture=self.root/'choices')
+        self.assertFalse((self.root/'choices').exists())
+
+    def test_choice_capture_validates_fresh_images_and_state(self):
+        self.write_emulator(after="d = Path(os.environ['GBARUN_CHOICE_DIR'])\n"
+                            "(d/'frame-000001.bin').write_bytes(bytes(0x60400))\n"
+                            "(d/'frame-000001.ppm').write_bytes(Path(os.environ['GBARUN_SHOT']).read_bytes())\n"
+                            "print('[choices] captured 1')\n")
+        target = self.root/'choices'
+        self.run_emulator(choice_capture=target)
+        self.assertEqual((target/'frame-000001.bin').stat().st_size, 0x60400)
+        self.assertTrue((target/'frame-000001.ppm').exists())
+        with self.assertRaises(FileExistsError):
+            self.run_emulator(choice_capture=target)
+
+    def test_choice_capture_incomplete_output_is_not_success(self):
+        for contents in ("print('[choices] captured 1')",
+                         "d = Path(os.environ['GBARUN_CHOICE_DIR'])\n"
+                         "(d/'frame-000001.bin').write_bytes(b'broken')\n"
+                         "(d/'frame-000001.ppm').write_bytes(b'broken')\n"
+                         "print('[choices] captured 1')"):
+            with self.subTest(contents=contents):
+                self.write_emulator(after=contents)
+                with self.assertRaises(harness.HarnessError):
+                    self.run_emulator(choice_capture=self.root/'choices')
+                self.assertFalse((self.root/'choices').exists())
+
     def test_string_keys_expand_as_tokens(self):
         self.assertEqual(harness.expand_keys('START@0:4 A@10-30:2:10'),
                          ['START@0:4', 'A@10:2', 'A@20:2', 'A@30:2'])

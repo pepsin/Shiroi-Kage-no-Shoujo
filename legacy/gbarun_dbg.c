@@ -22,6 +22,7 @@
  *   GBARUN_SAVE=<state.ssN>    write a savestate at the end
  *   GBARUN_SHOT=<file.ppm>     final screenshot (default <outprefix>_final.ppm)
  *   GBARUN_SHOT_EVERY=N        also write <outprefix>_shotNNNNNN.ppm every N frames
+ *   GBARUN_CHOICE_DIR=<dir>    read-only menu candidates before input / segment end
  *   GBARUN_BIOS=<bios.bin>     use a real BIOS
  *   GBARUN_FORCE_SAVE=N        force the cartridge save type
  *   GBARUN_NO_AUTOSAVE=1       do not autoload the .sav next to the ROM
@@ -422,6 +423,44 @@ static void dumpRAM(const char* prefix) {
 		printf("[ramsnap] wrote %s (%s)\n", path, R[i].n);
 	}
 	fflush(stdout);
+}
+
+/* Review candidates use the frame BEFORE the next controller event, so text
+ * has finished rendering and selecting an answer cannot erase the screenshot.
+ * No extra emulated frames, inputs, RAM writes or save-state loads are used.
+ * Python resolves the script entry and filters non-menu transitions afterwards.
+ */
+static uint32_t reviewRead32(uint32_t address) {
+	uint32_t value = 0;
+	for (int i = 0; i < 4; ++i) value |= (uint32_t) memRead8(address + i) << (8 * i);
+	return value;
+}
+
+static int captureChoice(const char* directory, long frame) {
+	uint32_t ui = reviewRead32(0x02015160);
+	uint32_t cursor = reviewRead32(0x03007C40);
+	if (!(ui >= 2 && ui <= 4) && !(ui == 0 && cursor >= 0x02000000)) return 0;
+	char path[1024];
+	if (snprintf(path, sizeof(path), "%s/frame-%06ld.bin", directory, frame) >= (int) sizeof(path)) return -1;
+	FILE* file = fopen(path, "wb");
+	if (!file) { perror("choice snapshot"); return -1; }
+	static const uint32_t regions[][2] = {
+		{0x02000000, 0x40000}, {0x03000000, 0x8000},
+		{0x06000000, 0x18000}, {0x07000000, 0x400}
+	};
+	unsigned char chunk[4096];
+	for (size_t r = 0; r < sizeof(regions) / sizeof(regions[0]); ++r) {
+		for (uint32_t offset = 0; offset < regions[r][1]; offset += sizeof(chunk)) {
+			uint32_t n = regions[r][1] - offset;
+			if (n > sizeof(chunk)) n = sizeof(chunk);
+			for (uint32_t i = 0; i < n; ++i) chunk[i] = memRead8(regions[r][0] + offset + i);
+			if (fwrite(chunk, 1, n, file) != n) { fclose(file); return -1; }
+		}
+	}
+	if (fclose(file)) return -1;
+	if (snprintf(path, sizeof(path), "%s/frame-%06ld.ppm", directory, frame) >= (int) sizeof(path)) return -1;
+	writePPM(path);
+	return 1;
 }
 
 /* --------------------------------------------------------- full memory dump */
@@ -872,6 +911,8 @@ int main(int argc, char** argv) {
 		}
 	}
 	const char* keyScript = getenv("GBARUN_KEYS");
+	const char* choiceDir = getenv("GBARUN_CHOICE_DIR");
+	int choiceCount = 0;
 	long shotEvery = 0;
 	{
 		const char* se = getenv("GBARUN_SHOT_EVERY");
@@ -947,6 +988,16 @@ int main(int argc, char** argv) {
 			core->runFrame(core);
 		}
 
+		if (choiceDir) {
+			int boundary = f == frames - 1;
+			for (int e = 0; !boundary && e < nEvents; ++e) boundary = events[e].frame == f + 1;
+			if (boundary) {
+				int captured = captureChoice(choiceDir, f);
+				if (captured < 0) { fprintf(stderr, "choice capture failed\n"); return 2; }
+				choiceCount += captured;
+			}
+		}
+
 		/* GBARUN_FRAME_READ="addr:len@frame[;...]" - 指定帧的一次性读数（很便宜，
 		 * 在模拟器被拖慢时也能用，替代逐帧 GBARUN_READ）。 */
 		{
@@ -996,6 +1047,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	if (choiceDir) printf("[choices] captured %d\n", choiceCount);
 	{
 		char path[1024];
 		const char* so = getenv("GBARUN_SHOT");

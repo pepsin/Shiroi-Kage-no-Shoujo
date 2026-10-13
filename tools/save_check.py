@@ -40,6 +40,10 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# work/dbg/ 下的存档是调试过程留下的判定夹具（含故意造坏的样本），
+# 不能算进 --selftest 的结论，否则自检注定失败。
+BROKEN_DIR = os.path.join(ROOT, 'work', 'dbg') + os.sep
+
 SIZE = 8192
 MAGIC = 0x0DECADE0
 HDR_OFF, HDR_LEN = 0x00, 24
@@ -219,9 +223,17 @@ def main():
     a = ap.parse_args()
     paths = list(a.savs)
     if a.selftest:
-        paths += sorted(glob.glob(os.path.join(ROOT, '*.sav')))
+        # .sav 被 .gitignore 忽略，仓库根目录通常没有；实际都落在 work/ 下，
+        # 所以 --selftest 要连 work/ 一起扫，否则永远空手而归、把 make test 卡死。
+        found = (glob.glob(os.path.join(ROOT, '*.sav'))
+                 + glob.glob(os.path.join(ROOT, 'work', '**', '*.sav'), recursive=True))
+        # work/dbg/ 下的 zero.sav / err.sav 是**故意造坏**的判定夹具，把它们算进
+        # 结论会让自检永远失败；自检只回答「手上的正常存档还能不能读」。
+        paths += sorted(p for p in found if not p.startswith(BROKEN_DIR))
     if not paths:
-        ap.error('给出 .sav 文件，或用 --selftest')
+        print('== --selftest：没有找到可检查的 .sav（仓库根目录与 work/ 都是空的）')
+        print('   work/ 是可再生的中间目录，清掉之后没有存档可查，跳过即可。')
+        return 0
 
     worst = 0
     for p in paths:

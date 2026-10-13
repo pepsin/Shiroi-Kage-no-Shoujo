@@ -106,6 +106,13 @@ class AutoplayTests(unittest.TestCase):
             self.run_route(resume=True)
         self.assertFalse((self.root / 'out/result.json').exists())
 
+    def test_resume_cannot_silently_enable_capture_and_skip_previous_choices(self):
+        with mock.patch.object(autoplay, 'run_harness', side_effect=self.fake_harness):
+            self.run_route()
+        with self.assertRaisesRegex(ValueError, '相同的选项截图设置'):
+            self.run_route(resume=True, capture_choices=True)
+        self.assertFalse((self.root / 'out/result.json').exists())
+
     def test_compaction_preserves_order_and_timing(self):
         events = [('A', 1, 4), ('A', 9, 4), ('A', 17, 4), ('B', 17, 2), ('A', 50, 4)]
         self.assertEqual(expand_keys(export_autoplay.compact(events)),

@@ -22,6 +22,34 @@ python3 tools/autoplay.py --out work/my-playthrough --resume
 默认每次创建新的 `work/autoplay/<时间>-<运行号>/` 目录。指定目录已有记录时，
 执行器要求明确续跑，避免覆盖已有验收证据。恢复时校验路线、ROM 和断点的 SHA256。
 
+## 选项截图审核
+
+`make autoplay` 默认保存本次路线实际遇到的对话选项、推理选项（含滚动后出现的新页）、
+行动菜单、物品选择和地图选择。打开本次输出目录中的 `choice-review/index.html`，
+可按类型筛选、放大查看；原始 240×160 PNG 不经重绘，索引列出脚本条目、分段和帧号
+（帧号从 0 开始）。
+`index.json` 还记录重复出现的位置、图片 SHA256 和运行状态。未完成的运行显示
+`IN_PROGRESS` 或 `PARTIAL`，不会被标成已通关。
+
+```bash
+make autoplay AUTOPLAY_ARGS='--out work/option-review'
+# 审核页：work/option-review/choice-review/index.html
+# 只跑验证、关闭截图：
+make autoplay AUTOPLAY_ARGS='--no-choice-capture'
+```
+
+截图仅使用模拟器已经渲染的画面：在下一次按键前一帧及分段末尾读取 UI／剧本状态，
+识别普通选项和推理列表，不注入按键、改 RAM、暂停或增加游戏帧数。相同脚本内，
+只改变高亮的文字选项合并为一张；滚动后的不同内容、不同脚本实例分别保留。
+它覆盖当前路线实际显示过的页面，不代表已经遍历所有支线或未滚动到的选项。
+
+整个 `choice-review/` 目录均由 `.gitignore` 排除，自定义 `--out` 时也适用；
+截图和审核索引不提交。原始采集快照在每段处理后清理。审核不需要 Pillow、OCR 或 AI。
+续跑必须保持原来的截图设置，并校验已保存图片；旧版无截图的运行请使用
+`--resume --no-choice-capture`，如需完整截图则在新目录从冷启动重跑。
+
+## 通关验证
+
 每段结束核对 EWRAM、IWRAM、VRAM 和画面，偏离即失败；保留日志、截图和最后通过的断点。
 `result.json` 中只有 `CLEAR` 才代表该完整路线到达经观察确认的结局画面。
 开发中的路线标为 `partial`，默认拒绝作为通关路线运行；显式加 `--allow-partial`
@@ -57,5 +85,5 @@ make autoplay AUTOPLAY_ARGS='--route work/route-new.json --out work/replay-new'
 python3 tools/export_autoplay.py work/playthrough-session tests/autoplay/route.json
 ```
 
-导出工具需要 Pillow；独立回放执行器不需要 Pillow。字形识别、攻略解析和探索控制器
+导出工具需要 Pillow；独立回放执行器和选项截图都不需要 Pillow。字形识别、攻略解析和探索控制器
 都不参与最终固定路线回放。

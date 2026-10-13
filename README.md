@@ -51,7 +51,7 @@ make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库 / 引擎�
 make check-dyn  # 动态回归：无头复跑固定路线，比对条目/场景/不变量与证据哈希（含完整书斋调查路线）
 make test-unit  # 自动测试工具自身的回归（不需要 ROM 或模拟器）
 make test       # 单测 → 静态校验/索引/存档 → 动态回归
-make autoplay   # 从冷启动重放完整游玩路线，逐段校验证据；无需 AI 或联网
+make autoplay   # 从冷启动重放完整路线，逐段校验并保存选项审核图；无需 AI 或联网
 make save       # 验证存档会不会被游戏判成「无法读取」（make save SAV=x.sav 指定文件）
 make help       # 全部目标
 ```
@@ -63,6 +63,8 @@ make help       # 全部目标
 > `python3 tools/dyn_check.py run --strict`，缺失基线也会失败。
 
 独立游玩执行器与恢复方式见 [tests/autoplay/README.md](tests/autoplay/README.md)。
+默认生成 `work/autoplay/<运行目录>/choice-review/index.html` 供选项画面审核，
+含普通选项和推理列表滚动页；截图与索引不会被 Git 追踪。
 路线绑定确切的 ROM 哈希，只有完整重放并匹配结局画面才报告 `CLEAR`；
 修改 ROM 后不能直接沿用旧路线的通关结论。
 游玩中发现的日文残留与编码问题见 [docs/未翻译与编码问题.md](docs/未翻译与编码问题.md)。

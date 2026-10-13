@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 
@@ -44,7 +45,7 @@ class HarnessError(RuntimeError):
 
 
 def run_harness(harness, rom, frames, keys, prefix, *, frame_read='',
-                state=None, sav=None, save=None, timeout=60):
+                state=None, sav=None, save=None, timeout=60, choice_capture=None):
     """Return fresh, complete evidence or fail; never consume a prior run's files."""
     if type(frames) is not int or frames <= 0 or timeout <= 0:
         raise ValueError('frames 和 timeout 必须为正')
@@ -70,6 +71,10 @@ def run_harness(harness, rom, frames, keys, prefix, *, frame_read='',
     # Each invocation writes into its own directory, even when callers share a name.
     with tempfile.TemporaryDirectory(prefix='.run-', dir=prefix.parent) as tmp:
         fresh = Path(tmp) / 'snapshot'
+        if choice_capture is not None:
+            captures = Path(tmp) / 'choices'
+            captures.mkdir()
+            env['GBARUN_CHOICE_DIR'] = str(captures.resolve())
         env['GBARUN_RAMSNAP'] = f'{frames - 1}:{fresh}'
         env['GBARUN_SHOT'] = str(fresh) + '.ppm'
         if save:
@@ -111,4 +116,16 @@ def run_harness(harness, rom, frames, keys, prefix, *, frame_read='',
             if '[state] wrote ' not in out or not checkpoint.is_file() or not checkpoint.stat().st_size:
                 raise HarnessError('harness 未能保存即时存档')
             Path(save).write_bytes(checkpoint.read_bytes())
+        if choice_capture is not None:
+            match = re.search(r'^\[choices\] captured (\d+)$', out, re.MULTILINE)
+            if match is None:
+                raise HarnessError('harness 不支持选项截图；请运行 make dbg 重新编译')
+            snapshots = list(captures.glob('frame-*.bin'))
+            if len(snapshots) != int(match[1]):
+                raise HarnessError('选项截图记录不完整')
+            for snapshot in snapshots:
+                ppm = snapshot.with_suffix('.ppm').read_bytes()
+                if snapshot.stat().st_size != 0x60400 or not ppm.startswith(header) or len(ppm) != len(shot):
+                    raise HarnessError('选项截图或状态长度错误')
+            shutil.copytree(captures, choice_capture)
         return evidence, out
