@@ -55,10 +55,15 @@ define run_verify
 	fi
 	@echo "== 全量校验 $(ROM)"
 	@$(PY) tools/verify_rom.py "$(ROM)"
+	@$(PY) tools/verify_writes.py --cn "$(ROM)"
 	@echo
 	@$(PY) tools/verify_glyphs.py "$(ROM)"
 	@echo
 	@$(PY) tools/check_append_guard.py --rom "$(ROM)"
+	@$(PY) tools/patch_location_labels.py "$(ROM)" --check
+	@$(PY) tools/patch_disclaimer_page.py "$(ROM)" --check
+	@$(PY) tools/patch_status_bar.py "$(ROM)" --check
+	@$(PY) tools/patch_title_page.py "$(ROM)" --check
 endef
 
 all: rom                                     ## 全流程：合并 → 预检 → 索引 → 打包 → 校验

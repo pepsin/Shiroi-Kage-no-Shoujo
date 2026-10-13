@@ -1,16 +1,20 @@
 {
   "status": "CLEAR",
-  "route_sha256": "23064f3255e7cd8f1eefd2fbb5809a72ba59274a1e5a1dce60feecc70a92eb38",
-  "rom_sha256": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0",
+  "route_sha256": "f383584a29bbb8df96ffcbb4b87af8efe0e6a6028d28bd81d727e0863b865ec4",
+  "rom_sha256": "1ee46ff45683d80310f7c38cb50d7b9ed1a393f3c0e288e0ad900c9692afbfc1",
   "segments": 124,
   "frames": 1489738,
   "ending": {
     "description": "完成主线结局与制作人员名单后，显示通关密码 NSYS。",
     "ppm_sha256": "d9e47962125666033dd2dfa0da2bcd174b172cda3e50fcf7367824f981796504"
   },
-  "verified_at_utc": "2026-10-12T10:33:31.134821+00:00",
-  "command": "make autoplay",
+  "verified_at_utc": "2026-10-12T11:17:51.284453+00:00",
+  "command": "make autoplay AUTOPLAY_ARGS='--route work/translation-validation/route.final.json --out work/translation-validation/strict-replay'",
   "cold_start": true,
   "mgba_version": "0.10.5",
-  "harness_source_sha256": "625075914a1235a645ab353adf043287df5ef7db56b9cd4bc7fbb6620f93ee21"
+  "harness_source_sha256": "625075914a1235a645ab353adf043287df5ef7db56b9cd4bc7fbb6620f93ee21",
+  "translation_sha256": "b5026bbf88467ed5651ed21c896c7da32fda717aa97861bba634f4d70c79409d",
+  "location_assets_sha256": "ab42d570933f573b8de979db3ffc2b438e1e3e15859b933a7c9b7c93d9ae0407",
+  "unit_tests": 58,
+  "strict_dynamic_checks": 5
 }

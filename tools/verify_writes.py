@@ -56,6 +56,13 @@ BENIGN = [(0x44BF60, 0x44BF60 + 576), (0x44C1A0, 0x44C1A0 + 576),
           # absolute self-references rewritten (see build_rom.py)
           (0x864080, 0x98E1B0)]
 
+# Reviewed map-label pixels only; headers and adjacent resources stay guarded.
+# The exact replacements and all scene prefixes are checked independently by
+# patch_location_labels.py --check during build and make verify.
+from patch_location_labels import load_assets
+BENIGN += [(r['file_start'] + r['pixel_offset'], r['file_start'] + r['decoded_size'])
+           for r in load_assets() if r['kind'] == 'map']
+
 
 def benign(file_off):
     """True when a *file* offset is one we rewrite on purpose."""

@@ -12,7 +12,9 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import autoplay
 import export_autoplay
+import revalidate_autoplay
 import scene_lookup
+import tm
 from harness_utils import expand_keys, HarnessError
 
 
@@ -109,8 +111,60 @@ class AutoplayTests(unittest.TestCase):
         self.assertEqual(expand_keys(export_autoplay.compact(events)),
                          [f'{k}@{f}:{h}' for k, f, h in events])
 
+    def revalidate(self, candidate=None):
+        route = self.root / 'accepted.json'
+        route.write_text(json.dumps(self.route))
+        self.rom.write_bytes(b'new-rom')
+        with contextlib.redirect_stdout(io.StringIO()):
+            return revalidate_autoplay.revalidate(
+                route, self.rom, 'harness', self.root / 'new-evidence',
+                candidate or self.root / 'candidate.json')
+
+    def test_new_rom_candidate_requires_same_ending_and_separate_replay(self):
+        old = copy.deepcopy(self.route)
+        # Intermediate RAM hashes can change, but controller input cannot.
+        self.evidence['ewram'] = b'new translated data'
+        with mock.patch.object(revalidate_autoplay, 'run_harness', side_effect=self.fake_harness) as runner:
+            result = self.revalidate()
+        self.assertEqual(result['status'], 'CANDIDATE_REQUIRES_REPLAY')
+        self.assertIsNone(runner.call_args_list[0].kwargs['state'])
+        candidate, _ = autoplay.load_route(self.root / 'candidate.json')
+        self.assertEqual(candidate['rom_sha256'], autoplay.digest(b'new-rom'))
+        self.assertEqual(candidate['segments'][0]['keys'], old['segments'][0]['keys'])
+        self.assertEqual(json.loads((self.root / 'accepted.json').read_text()), old)
+
+    def test_new_rom_wrong_ending_cannot_publish_candidate(self):
+        self.evidence['ppm'] = b'not the ending'
+        with mock.patch.object(revalidate_autoplay, 'run_harness', side_effect=self.fake_harness):
+            with self.assertRaises(HarnessError):
+                self.revalidate()
+        self.assertFalse((self.root / 'candidate.json').exists())
+        self.assertFalse((self.root / 'new-evidence/result.json').exists())
+
+    def test_interrupted_revalidation_cannot_publish_candidate(self):
+        with mock.patch.object(revalidate_autoplay, 'run_harness', side_effect=HarnessError('timeout')):
+            with self.assertRaises(HarnessError):
+                self.revalidate()
+        self.assertFalse((self.root / 'candidate.json').exists())
+        self.assertFalse((self.root / 'new-evidence/result.json').exists())
+
+    def test_revalidation_refuses_existing_route_or_evidence(self):
+        existing = self.root / 'candidate.json'
+        existing.write_text('keep this file')
+        with self.assertRaises(ValueError):
+            self.revalidate(existing)
+        self.assertEqual(existing.read_text(), 'keep this file')
+        existing.unlink()
+        (self.root / 'new-evidence').mkdir()
+        with self.assertRaises(FileExistsError):
+            self.revalidate()
+
 
 class SceneOffsetTests(unittest.TestCase):
+    def test_numeric_storage_punctuation_cannot_hide_blank_glyph(self):
+        self.assertNotEqual(tm.punct_skeleton('6。7年前'), tm.punct_skeleton('六、七年前'))
+        self.assertEqual(tm.punct_skeleton('6。7年くらい'), tm.punct_skeleton('6。7年左右'))
+
     def test_engine_index_does_not_alias_translation_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp)

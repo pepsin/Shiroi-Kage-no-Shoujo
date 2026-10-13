@@ -1,4 +1,4 @@
 master_line	entry	idx	kind	pool_relative_offset	decoded_absolute_offset	n_codes	jp_text	current_translation	suggested_translation	evidence	status
-10441	61	541	table	26180	28132	3	応接室	应接室	会客室	e20:200 already uses 会客室; terminology review pending	proposed_not_applied
-10442	61	542	table	26188	28140	13	俺達は応接室へと向かった，	我们朝应接室走去，	我们朝会客室走去，	e20:200 already uses 会客室; terminology review pending	proposed_not_applied
-39809	240	294	table	23166	25118	11	、わしは新宿中央公園を	、我就在新宿中央公園	、我就在新宿中央公园	state-11478.ss1; previous line 294 while cursor=295	proposed_not_applied
+10441	61	541	table	26180	28132	3	応接室	应接室	会客室	e20:200 already uses 会客室; terminology reviewed: 会客室	applied
+10442	61	542	table	26188	28140	13	俺達は応接室へと向かった，	我们朝应接室走去，	我们朝会客室走去，	e20:200 already uses 会客室; terminology reviewed: 会客室	applied
+39809	240	294	table	23166	25118	11	、わしは新宿中央公園を	、我就在新宿中央公園	、我就在新宿中央公园	state-11478.ss1; previous line 294 while cursor=295	applied

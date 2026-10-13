@@ -30,6 +30,21 @@ python3 tools/autoplay.py --out work/my-playthrough --resume
 路线绑定一份确切 ROM。修改译文、字库或打包后，旧证据不能直接证明新版本通关。
 需核对新版本实际玩法、重新取得证据，再从冷启动回放验收。
 
+译文或图片修改后，使用同一输入序列验证新 ROM：
+
+```bash
+python3 tools/revalidate_autoplay.py --out work/revalidate-new \
+  --candidate work/route-new.json
+make autoplay AUTOPLAY_ARGS='--route work/route-new.json --out work/replay-new'
+```
+
+第一步必须从冷启动跑完并匹配原通关画面，才生成候选；新目录和新候选文件均不得
+覆盖既有证据，失败不更新路线。第一步结果为 `CANDIDATE_REQUIRES_REPLAY`。
+第二步仍由原执行器逐段严格验证全部 RAM 和画面，只有第二次运行得到 `CLEAR`，
+才把候选替换为 `tests/autoplay/route.json` 并更新 `verification.json`。
+若终点画面本身有意修改，不能通过刷新旧终点哈希绕过失败；应正常游玩、观察新终点，
+按下述记录流程重新导出和独立验收。
+
 ## 记录与更新
 
 探索时每次实际输入记为 `route.jsonl`，包含连续 step、frames、keys，

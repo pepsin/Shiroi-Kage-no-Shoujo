@@ -85,6 +85,66 @@ def compress(data, max_window=0x1000, max_chain=96):
     return bytes(out)
 
 
+def compress_fixed_slot(data):
+    """Choose LZ77 token lengths by byte cost, including one flag per 8 tokens.
+
+    The ordinary greedy compressor can make an unchanged background larger.
+    This bounded-window pass is only a fallback when a label misses its slot.
+    It uses the same GBA LZ77 format; no loader/engine changes are needed.
+    """
+    from array import array
+    n = len(data)
+    lengths = bytearray(n)
+    distances = array('H', [0]) * n
+    history = {}
+    for i in range(n - 2):
+        key = data[i:i + 3]
+        chain = history.setdefault(key, [])
+        best, distance = 0, 0
+        for j in reversed(chain):
+            if i - j > 4096:
+                break
+            length = 3
+            while length < min(18, n - i) and data[j + length] == data[i + length]:
+                length += 1
+            if length > best:
+                best, distance = length, i - j
+            if best == min(18, n - i):
+                break
+        lengths[i], distances[i] = best, distance
+        chain.append(i)
+    costs = array('I', [0]) * ((n + 1) * 8)
+    choices = bytearray(n * 8)
+    for i in range(n - 1, -1, -1):
+        for k in range(8):
+            next_k = (k + 1) % 8
+            flag = int(k == 0)
+            best = flag + 1 + costs[(i + 1) * 8 + next_k]
+            selected = 1
+            for length in range(3, lengths[i] + 1):
+                cost = flag + 2 + costs[(i + length) * 8 + next_k]
+                if cost < best:
+                    best, selected = cost, length
+            costs[i * 8 + k], choices[i * 8 + k] = best, selected
+    out = bytearray(b'\x10' + n.to_bytes(3, 'little'))
+    i, k, flag_at = 0, 0, None
+    while i < n:
+        if k == 0:
+            flag_at = len(out)
+            out.append(0)
+        length = choices[i * 8 + k]
+        if length == 1:
+            out.append(data[i])
+        else:
+            distance = distances[i]
+            code = ((length - 3) << 12) | (distance - 1)
+            out.extend(code.to_bytes(2, 'big'))
+            out[flag_at] |= 0x80 >> k
+        i += length
+        k = (k + 1) % 8
+    return bytes(out)
+
+
 def selftest():
     import random
     random.seed(1)

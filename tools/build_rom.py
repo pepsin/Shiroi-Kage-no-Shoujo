@@ -363,6 +363,10 @@ def main():
              [sys.executable, os.path.join(ROOT, 'tools', 'patch_disclaimer_page.py'),
               a.out, '--apply'], a.out)
 
+    run_step('地点栏与地图标签',
+             [sys.executable, os.path.join(ROOT, 'tools', 'patch_location_labels.py'),
+              a.out, '--apply'], a.out)
+
     # --- apply hand-edited glyph PNGs -------------------------------------
     # data/glyph_png is the editable view of the font table; without this step
     # a rebuild would silently revert every glyph the user redrew by hand.
@@ -423,6 +427,8 @@ def main():
          [py, os.path.join(t, 'patch_status_bar.py'), a.out, '--check']),
         ('patch_title_page.py（标题画面）',
          [py, os.path.join(t, 'patch_title_page.py'), a.out, '--check']),
+        ('patch_location_labels.py（地点栏与地图标签）',
+         [py, os.path.join(t, 'patch_location_labels.py'), a.out, '--check']),
     ]
     results = [(label, run_check(cmd)) for label, cmd in checks]
     ok = all(rc == 0 for _, rc in results)
