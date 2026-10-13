@@ -1,0 +1,474 @@
+[
+  {
+    "index": 0,
+    "rom_offset": 4666720,
+    "compressed_size": 9464,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "0e6d20835cc060609826176ddaf50c5d9511355960951e38a060f4d770c339b5"
+  },
+  {
+    "index": 1,
+    "rom_offset": 4676192,
+    "compressed_size": 10156,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "0e6d20835cc060609826176ddaf50c5d9511355960951e38a060f4d770c339b5"
+  },
+  {
+    "index": 2,
+    "rom_offset": 4686352,
+    "compressed_size": 16908,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "79ea70f2ea9faad7b5c2e6d1f6fbdb4b75dcefccbe28a1986a5c66b171c64734"
+  },
+  {
+    "index": 3,
+    "rom_offset": 4703264,
+    "compressed_size": 16972,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "79ea70f2ea9faad7b5c2e6d1f6fbdb4b75dcefccbe28a1986a5c66b171c64734"
+  },
+  {
+    "index": 4,
+    "rom_offset": 4720240,
+    "compressed_size": 9024,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "32fe46fdf9f4bbf6109558bf7bda0a88352a4e55b25d12c912b721724967b852"
+  },
+  {
+    "index": 5,
+    "rom_offset": 4729264,
+    "compressed_size": 10000,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "32fe46fdf9f4bbf6109558bf7bda0a88352a4e55b25d12c912b721724967b852"
+  },
+  {
+    "index": 6,
+    "rom_offset": 4739264,
+    "compressed_size": 16820,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "b035d003052da0e834420b3d414fe71a2e0445003e0f57c9358989b64fca6d60"
+  },
+  {
+    "index": 7,
+    "rom_offset": 4756096,
+    "compressed_size": 20888,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "b4dc19032c2c0c6fd698ab3adddd290f5da90f1b0e9bd38436c3dd421bbfe5ac"
+  },
+  {
+    "index": 8,
+    "rom_offset": 4776992,
+    "compressed_size": 20844,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "b4dc19032c2c0c6fd698ab3adddd290f5da90f1b0e9bd38436c3dd421bbfe5ac"
+  },
+  {
+    "index": 9,
+    "rom_offset": 4797840,
+    "compressed_size": 15600,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "9e1f7fc13e12838d188b7552e93cf27551b01af22bce169eec0464442c3142be"
+  },
+  {
+    "index": 10,
+    "rom_offset": 4813440,
+    "compressed_size": 17548,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "153dc3ef5ab43b09967d1d6edf0990d34a0ef481150b920cbe0f265534627021"
+  },
+  {
+    "index": 11,
+    "rom_offset": 4830992,
+    "compressed_size": 15116,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "5abc20f167b8efba2f23a46a060e8ab42d0519da2732555533946cd17612374b"
+  },
+  {
+    "index": 12,
+    "rom_offset": 4846112,
+    "compressed_size": 9724,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "2b9642a068eb7e5b00a2a3bf927780a9283a956a5a4784bf18cd22ce4aeafcd4"
+  },
+  {
+    "index": 13,
+    "rom_offset": 4855840,
+    "compressed_size": 17200,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "3dda7220389e25d53916b61a198cb4ceaf38945dec26bc3cc57640417e54b603"
+  },
+  {
+    "index": 14,
+    "rom_offset": 4873040,
+    "compressed_size": 9868,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "9194077509841e9887ea1b40ae0acab9ca8047afb2bb8d870331dce3c6380bf5"
+  },
+  {
+    "index": 15,
+    "rom_offset": 4882912,
+    "compressed_size": 18432,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "fdd9a7f559e870263757e4bc45fbf5d92ba07d8ee6439f758b9dd1096eb4eaa6"
+  },
+  {
+    "index": 16,
+    "rom_offset": 4901344,
+    "compressed_size": 10704,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "c67a8f0d5a102adba343c11efad437d71f7a0b012021050689f2038e126c879b"
+  },
+  {
+    "index": 17,
+    "rom_offset": 4912048,
+    "compressed_size": 12160,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "c29c93e2be469e6a58fc948a493bac0e6ffbb9161d6b70f91dcf6d4de7af8e03"
+  },
+  {
+    "index": 18,
+    "rom_offset": 4924208,
+    "compressed_size": 12232,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "c29c93e2be469e6a58fc948a493bac0e6ffbb9161d6b70f91dcf6d4de7af8e03"
+  },
+  {
+    "index": 19,
+    "rom_offset": 4936448,
+    "compressed_size": 19012,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "9bbbd3293d55bd403d347d4c8f85240f3c1c25653b86bd776c6fb2f3037afcf7"
+  },
+  {
+    "index": 20,
+    "rom_offset": 4955472,
+    "compressed_size": 19256,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "9bbbd3293d55bd403d347d4c8f85240f3c1c25653b86bd776c6fb2f3037afcf7"
+  },
+  {
+    "index": 23,
+    "rom_offset": 4974736,
+    "compressed_size": 21084,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "44c8065500d5107492bba8e7f0de956a39fba27438706bac64f10435be0232f0"
+  },
+  {
+    "index": 24,
+    "rom_offset": 4995824,
+    "compressed_size": 11724,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "44c8065500d5107492bba8e7f0de956a39fba27438706bac64f10435be0232f0"
+  },
+  {
+    "index": 25,
+    "rom_offset": 5007552,
+    "compressed_size": 11100,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "87ad233baeb605dd13b967392384f69d5cddb77c902468c4aa9ab5a1dd5d4d78"
+  },
+  {
+    "index": 26,
+    "rom_offset": 5018656,
+    "compressed_size": 11084,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "87ad233baeb605dd13b967392384f69d5cddb77c902468c4aa9ab5a1dd5d4d78"
+  },
+  {
+    "index": 27,
+    "rom_offset": 5029744,
+    "compressed_size": 11756,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "3c5950af85917e44af86406df0200a4d9f19baf79ff37edefae715122e3bf1bd"
+  },
+  {
+    "index": 28,
+    "rom_offset": 5041504,
+    "compressed_size": 11564,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "3c5950af85917e44af86406df0200a4d9f19baf79ff37edefae715122e3bf1bd"
+  },
+  {
+    "index": 29,
+    "rom_offset": 5053072,
+    "compressed_size": 11520,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "a74267a9d5cd1d17aa2d3c989116afbdd0fb7e18d44929c36fe5e490ba49c7cb"
+  },
+  {
+    "index": 30,
+    "rom_offset": 5064592,
+    "compressed_size": 15080,
+    "uncompressed_size": 34016,
+    "label_offset": 33120,
+    "sha256": "a74267a9d5cd1d17aa2d3c989116afbdd0fb7e18d44929c36fe5e490ba49c7cb"
+  },
+  {
+    "index": 31,
+    "rom_offset": 5079680,
+    "compressed_size": 16948,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "c90100a435c1d476017fc8796227b8f5878e35790b1933c6ad013106c90183c6"
+  },
+  {
+    "index": 32,
+    "rom_offset": 5096640,
+    "compressed_size": 16140,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "c90100a435c1d476017fc8796227b8f5878e35790b1933c6ad013106c90183c6"
+  },
+  {
+    "index": 33,
+    "rom_offset": 5112784,
+    "compressed_size": 16468,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "8b504ee10bd9371d1f68baade358e2e96dff9e91b13f6e118ce892d65a29588d"
+  },
+  {
+    "index": 34,
+    "rom_offset": 5129264,
+    "compressed_size": 16804,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "08a6e7f3232a2ad88f5f8cde662720fac3432eb3911b5b400204e25e339970f4"
+  },
+  {
+    "index": 35,
+    "rom_offset": 5146080,
+    "compressed_size": 9004,
+    "uncompressed_size": 12564,
+    "label_offset": 11668,
+    "sha256": "08a6e7f3232a2ad88f5f8cde662720fac3432eb3911b5b400204e25e339970f4"
+  },
+  {
+    "index": 36,
+    "rom_offset": 5155088,
+    "compressed_size": 13352,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "4f2a94d58a04d9fa51dac4cf7c5066a9bb683954927b9265321dbbf5bbee0015"
+  },
+  {
+    "index": 37,
+    "rom_offset": 5168448,
+    "compressed_size": 21408,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "55f2e877ef10fff7ac929577b3dd329a098894c93331d6fa40cd1946a3641bb2"
+  },
+  {
+    "index": 38,
+    "rom_offset": 5189856,
+    "compressed_size": 20212,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "55f2e877ef10fff7ac929577b3dd329a098894c93331d6fa40cd1946a3641bb2"
+  },
+  {
+    "index": 39,
+    "rom_offset": 5210080,
+    "compressed_size": 22448,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "eac42b591ab78771c2c702582c3f3afc11a66c5eee59590a5a37882639701e00"
+  },
+  {
+    "index": 40,
+    "rom_offset": 5232528,
+    "compressed_size": 21108,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "eac42b591ab78771c2c702582c3f3afc11a66c5eee59590a5a37882639701e00"
+  },
+  {
+    "index": 41,
+    "rom_offset": 5253648,
+    "compressed_size": 22364,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "7d599d5418b4d45e7c63137efd9db14824142eedd11fdbb9a18cd3164a023977"
+  },
+  {
+    "index": 42,
+    "rom_offset": 5276016,
+    "compressed_size": 22640,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "7d599d5418b4d45e7c63137efd9db14824142eedd11fdbb9a18cd3164a023977"
+  },
+  {
+    "index": 43,
+    "rom_offset": 5298656,
+    "compressed_size": 22496,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "a5ae403d80e957b46cc7e4c92027c56141c568d4485ddc5c8f1669fe8618cd77"
+  },
+  {
+    "index": 44,
+    "rom_offset": 5321152,
+    "compressed_size": 21560,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "a5ae403d80e957b46cc7e4c92027c56141c568d4485ddc5c8f1669fe8618cd77"
+  },
+  {
+    "index": 45,
+    "rom_offset": 5342720,
+    "compressed_size": 21420,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "cfc7a3460c7d04ac6bf996fc8a2ce09ba40782bd3d562e370a38834e10c416f8"
+  },
+  {
+    "index": 46,
+    "rom_offset": 5364144,
+    "compressed_size": 20348,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "cfc7a3460c7d04ac6bf996fc8a2ce09ba40782bd3d562e370a38834e10c416f8"
+  },
+  {
+    "index": 48,
+    "rom_offset": 5384496,
+    "compressed_size": 18996,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "d7e2b480b408a6e890c5fa1de3f008bfab9e52efa2f9b1efbfcd6714a9b83fce"
+  },
+  {
+    "index": 49,
+    "rom_offset": 5403504,
+    "compressed_size": 18608,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "c83ea91854f16db9786ce0def28261351395dd9458ba79d47bc6af16b9ee213d"
+  },
+  {
+    "index": 50,
+    "rom_offset": 5422112,
+    "compressed_size": 18572,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "c83ea91854f16db9786ce0def28261351395dd9458ba79d47bc6af16b9ee213d"
+  },
+  {
+    "index": 51,
+    "rom_offset": 5440688,
+    "compressed_size": 20732,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "ff0e3b4967940a073be40782d55caae1a56b795a7a9a36ba8870e8c6651f9d82"
+  },
+  {
+    "index": 52,
+    "rom_offset": 5461424,
+    "compressed_size": 19576,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "ff0e3b4967940a073be40782d55caae1a56b795a7a9a36ba8870e8c6651f9d82"
+  },
+  {
+    "index": 53,
+    "rom_offset": 5481008,
+    "compressed_size": 19804,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "4a5ab3e940195b524625844eaf3929ebbcff30692f4ea3455e689688cdfe2bcb"
+  },
+  {
+    "index": 54,
+    "rom_offset": 5500816,
+    "compressed_size": 16988,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "9d078376404e8ab514255666fc637ce597043de8678f01cf5f84243f6ee14c9d"
+  },
+  {
+    "index": 55,
+    "rom_offset": 5517808,
+    "compressed_size": 17096,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "9d078376404e8ab514255666fc637ce597043de8678f01cf5f84243f6ee14c9d"
+  },
+  {
+    "index": 56,
+    "rom_offset": 5534912,
+    "compressed_size": 10452,
+    "uncompressed_size": 12596,
+    "label_offset": 11700,
+    "sha256": "88bdeeedd3e6d6d3a0ce420356b8bddddf9770b576ff033dc76a2a4fc4aed3e6"
+  },
+  {
+    "index": 57,
+    "rom_offset": 5545376,
+    "compressed_size": 16956,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "d5f7b159f38f5d9e9f65016aec8922ec3622daa904345890d05bb34daa1dd2e5"
+  },
+  {
+    "index": 59,
+    "rom_offset": 5562336,
+    "compressed_size": 16456,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "c54e5f1b30a5807859864e76cbf3f129cace6fd46a304704de8353879d5f882b"
+  },
+  {
+    "index": 60,
+    "rom_offset": 5578800,
+    "compressed_size": 17500,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "c54e5f1b30a5807859864e76cbf3f129cace6fd46a304704de8353879d5f882b"
+  },
+  {
+    "index": 70,
+    "rom_offset": 5679904,
+    "compressed_size": 21684,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "cfc7a3460c7d04ac6bf996fc8a2ce09ba40782bd3d562e370a38834e10c416f8"
+  },
+  {
+    "index": 71,
+    "rom_offset": 5701600,
+    "compressed_size": 21584,
+    "uncompressed_size": 22320,
+    "label_offset": 21424,
+    "sha256": "55f2e877ef10fff7ac929577b3dd329a098894c93331d6fa40cd1946a3641bb2"
+  }
+]

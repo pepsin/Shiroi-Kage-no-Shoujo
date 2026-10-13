@@ -1,0 +1,215 @@
+{
+ "checks": {
+  "cn-boot-funeral": {
+   "check_hash": "2a51456f3f7568f85db556a50c79ce2705f8f2b412c725dfe768aab5517c1536",
+   "hashes": {
+    "cn": {
+     "ewram": "bc2a1f64f212683f154f211d836afed0481ecc1b5a119bafa933a21c8b95868f",
+     "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
+     "samples": "28a6e1d974bdaa0f386e8e33356db04085250e35eb5d0c6b88a3619483730edb",
+     "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
+     "vram": "1c5711fdb4e38494b432a07a7e656efd09fc176f4b7d132d71d91307ce8076cd"
+    }
+   },
+   "obs": {
+    "cn": {
+     "cursor": 332,
+     "cursor_changes": 2,
+     "entry": 438,
+     "entry_conf": "1952/1952",
+     "ewram_nonzero": 31478,
+     "idx": 0,
+     "iwram_nonzero": 5165,
+     "key_b": 1,
+     "line": 450,
+     "line_text": "哲司“““",
+     "live": true,
+     "returncode": 0,
+     "rid": "438:0",
+     "row_cn": "哲司“““",
+     "row_jp": "哲司“““",
+     "rows": 30,
+     "scene": "438.0"
+    }
+   },
+   "rom_hash": {
+    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+   }
+  },
+  "cn-funeral-to-reception": {
+   "check_hash": "0a98e0faadf1b57258a3b01e344caadd220f1cda7ed3d8792149180bad18814c",
+   "hashes": {
+    "cn": {
+     "ewram": "01ffc98e83c9b86277a85167038fb4d314c70c670b139bcfc2d1a45a23829967",
+     "iwram": "3c089794fa7e99267529ad234692d6dcd894229da2d9e045b27b7e31b722479d",
+     "samples": "b1a38bfa3f5179d14b68db6d7707997f6e00fe3db1cde02fad28369748faf4ba",
+     "shot": "404c9cf13ea2baed06a6a37fb2102dbc1d9b9f97c42a5c731332c87c78a8faa9",
+     "vram": "983bfdbec4e2cc59f9be8075cbb9f99d5098a68235181409f38f2681b37cccab"
+    }
+   },
+   "obs": {
+    "cn": {
+     "cursor": 2873,
+     "cursor_changes": 13,
+     "entry": 2,
+     "entry_conf": "1952/1952",
+     "ewram_nonzero": 50909,
+     "idx": 4,
+     "iwram_nonzero": 7994,
+     "key_b": 2,
+     "line": 3999,
+     "line_text": "」来。请坐这边吧『",
+     "live": true,
+     "returncode": 0,
+     "rid": "2:3",
+     "row_cn": "」来。请坐这边吧『",
+     "row_jp": "」さぁ。こちらにお座り下さい『",
+     "rows": 1,
+     "scene": "2.0"
+    }
+   },
+   "rom_hash": {
+    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+   }
+  },
+  "cn-mash-a-advances": {
+   "check_hash": "ed0c0b66256c08bb58c1c1fe7768092b64353a3779be87e1bfc001dbdaf9c252",
+   "hashes": {
+    "cn": {
+     "ewram": "c5ef7e8098b65bdf301a02e22032fe6b0c76f01cd2a38bfaade0e8cb261243bd",
+     "iwram": "f467dd05337c80595ab45881b7b733df9ea3009dc52422e0a33d8c8d0f3d06bc",
+     "samples": "347029bfb861a23b0775851efadb24de6a6b91be49c5ccc5b93a3fbc35441d07",
+     "shot": "0db66b7fc079ed0d27d0b734f264ac6a13d84aa3c55357c0d949dd7f00cab677",
+     "vram": "0a74c8f1c1903108f3284cfcfd1b7c755fd94d4522e40c5046768edbf4a4f1a3"
+    }
+   },
+   "obs": {
+    "cn": {
+     "cursor": 448,
+     "cursor_changes": 9,
+     "entry": 438,
+     "entry_conf": "1952/1952",
+     "ewram_nonzero": 38219,
+     "idx": 29,
+     "iwram_nonzero": 7784,
+     "key_b": 1,
+     "line": 1140,
+     "line_text": "这样祈愿，",
+     "live": true,
+     "returncode": 0,
+     "rid": "438:29",
+     "row_cn": "这样祈愿，",
+     "row_jp": "出来ない，",
+     "rows": 30,
+     "scene": "438.0"
+    }
+   },
+   "rom_hash": {
+    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+   }
+  },
+  "cn-study-search-complete": {
+   "check_hash": "f50d5e4d1991d45400ee921863958ff2fe1cdbf9fab4770fac62439b3ce9f1cd",
+   "hashes": {
+    "cn": {
+     "ewram": "1f6b285a8d7cf281cd7963cf55095b7335180b502dc208510f028c892bb3d3fd",
+     "iwram": "9ca2ec8149a8d39a2a5c5f9c27226c690fa2b690cb0f2beb58f26717dc67c0a6",
+     "samples": "94a4da93836cdf7b36570c34160ba8e32dada391c19e57966d8f4b720e8bac69",
+     "shot": "57f3b97da806cdc4bc7d0c22f8a957a0b905a5e3acc36eba5b5292ff6852bd2c",
+     "vram": "5b2feab7568964b026adc01d8b9c490b281d551e09ba3442d3eea174340f0c5d"
+    }
+   },
+   "obs": {
+    "cn": {
+     "cursor": 3995,
+     "cursor_changes": 14,
+     "entry": 7,
+     "entry_conf": "1952/1952",
+     "ewram_nonzero": 66399,
+     "idx": 197,
+     "iwram_nonzero": 9199,
+     "key_b": 7,
+     "line": 8277,
+     "line_text": "调查也能顺利推进了，",
+     "live": true,
+     "returncode": 0,
+     "rid": "7:183",
+     "row_cn": "调查也能顺利推进了，",
+     "row_jp": "調査もスム～ズに進みそうだ，",
+     "rows": 1,
+     "scene": "7.0"
+    }
+   },
+   "rom_hash": {
+    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+   }
+  },
+  "jp-cn-same-route-funeral": {
+   "check_hash": "2b6ffc19c4ee45782e581fdef810fada8548ca140b7f2de9a571bbc6aa888783",
+   "hashes": {
+    "cn": {
+     "ewram": "bc2a1f64f212683f154f211d836afed0481ecc1b5a119bafa933a21c8b95868f",
+     "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
+     "samples": "0a524aace1eb7b92fb89b715f773e49541c1e30fedf53572bf6a30222fda81c4",
+     "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
+     "vram": "1c5711fdb4e38494b432a07a7e656efd09fc176f4b7d132d71d91307ce8076cd"
+    },
+    "jp": {
+     "ewram": "9063b083bef09e6e662ea0bf85e69d32c485a74c634b28a88323955c6000efbc",
+     "iwram": "03ebe2e22cd61500113926d8e62607a09b18f1fe222c756107af6b253e6260b9",
+     "samples": "0a524aace1eb7b92fb89b715f773e49541c1e30fedf53572bf6a30222fda81c4",
+     "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
+     "vram": "94a500a7ac6c984021361849c7cad29bab653be2984a1e62b92e96dfa125621d"
+    }
+   },
+   "obs": {
+    "cn": {
+     "cursor": 332,
+     "cursor_changes": 2,
+     "entry": 438,
+     "entry_conf": "1952/1952",
+     "ewram_nonzero": 31478,
+     "idx": 0,
+     "iwram_nonzero": 5165,
+     "key_b": 1,
+     "line": 450,
+     "line_text": "哲司“““",
+     "live": true,
+     "returncode": 0,
+     "rid": "438:0",
+     "row_cn": "哲司“““",
+     "row_jp": "哲司“““",
+     "rows": 30,
+     "scene": "438.0"
+    },
+    "jp": {
+     "cursor": 332,
+     "cursor_changes": 2,
+     "entry": 438,
+     "entry_conf": "1952/1952",
+     "ewram_nonzero": 31327,
+     "idx": 0,
+     "iwram_nonzero": 5167,
+     "key_b": 1,
+     "line": 450,
+     "live": true,
+     "returncode": 0,
+     "rid": "438:0",
+     "row_cn": "哲司“““",
+     "row_jp": "哲司“““",
+     "rows": 30,
+     "scene": "438.0"
+    }
+   },
+   "rom_hash": {
+    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0",
+    "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
+   }
+  }
+ },
+ "rom_hash": {
+  "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0",
+  "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
+ },
+ "version": 1
+}

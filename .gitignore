@@ -49,12 +49,39 @@ htmlcov/
 /out/
 *.log
 
+# ---------- 动态回归（tests/dyn/） ----------
+# tests/dyn/checks.json 与 tests/dyn/baseline.json 是**要入库**的规格与基线；
+# 跑出来的证据（RAM 快照 / 截图 / harness 输出）统一写进 work/dyn/，已被 /work/ 覆盖。
+# 这里只兜住「把工作目录指到 tests/dyn 下」的情况，以及下面这个例外目录。
+/tests/dyn/out/
+
+# tests/dyn/ss/：手工/脚本存下来的起点即时存档。
+# 为什么单独放这儿而不是 work/：即时存档与 ROM 构建版本绑定、不能入库（见 *.ssN 规则），
+# 但 tools/crash_bisect.py 复现崩溃时**必须**有一份跨 make clean 活下来的起点存档。
+# 所以目录入库（.gitkeep）、内容不入库。
+/tests/dyn/ss/*
+!/tests/dyn/ss/.gitkeep
+
 # ---------- 无头 harness 的原始截图 ----------
 # gbarun_dbg 直接写 .ppm，核对排版时才转成 .png（png 也不提交，见下）
 *.ppm
 /shot_*.png
 /play_*.png
 /state_*.png
+
+# ---------- 仓库根目录的散落产物 ----------
+# 排查时经常顺手把中间结果丢在根目录（RAM dump、拼出来的子 ROM、临时导出）；
+# 这些一律不入库。注意只针对根目录，data/ 与 tests/ 下的同名文件不受影响。
+/*.ewram
+/*.iwram
+/*.vram
+/*_mem.bin
+/*_mem.idx
+/*.dump
+/*.tmp
+/out*.gba
+/sub*.gba
+/*.pdf
 
 # ---------- iCloud 不同步目录 / 生成物指纹 ----------
 # *.nosync 是「让 iCloud 跳过同步」的命名约定（见 docs/字形PNG底稿.md）

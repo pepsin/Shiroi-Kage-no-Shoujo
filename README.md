@@ -36,7 +36,7 @@ python3 -c "import zlib;print('%08X'%(zlib.crc32(open('Tantei Jinguuji Saburou -
 
 ## 一、现在就能做的事
 
-**生成中文 ROM**（译文已完成，字库已扩容，一条命令）：
+**生成中文 ROM**（字库已扩容，一条命令）：
 
 ```bash
 make            # 合并 scene_lines 手改 → 重建索引 → 打包 → 全量校验
@@ -47,10 +47,25 @@ make            # 合并 scene_lines 手改 → 重建索引 → 打包 → 全�
 ```bash
 make rom        # 合并 → 槽位预检 → 索引 → 打包（不校验）
 make slots      # 只做槽位预检：译文码位数有没有超过原文（1 秒，出错就先别打包）
-make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库 / 引擎关键区）
+make verify     # 只校验现有 ROM（文本往返 / 写入 / 字库 / 引擎关键区 / 追加条目对齐与零 guard）
+make check-dyn  # 动态回归：无头复跑固定路线，比对条目/场景/不变量与证据哈希（含完整书斋调查路线）
+make test-unit  # 自动测试工具自身的回归（不需要 ROM 或模拟器）
+make test       # 单测 → 静态校验/索引/存档 → 动态回归
+make autoplay   # 从冷启动重放完整游玩路线，逐段校验证据；无需 AI 或联网
 make save       # 验证存档会不会被游戏判成「无法读取」（make save SAV=x.sav 指定文件）
 make help       # 全部目标
 ```
+
+> 动态回归只比对**不变量**（落在哪一幕、有没有白屏/卡住、EWRAM 有没有被清零）；
+> 改一句译文只会让证据哈希漂移，报告成 `PASS*` 而不是失败。设计与加检查的步骤见
+> [docs/动态测试.md](docs/动态测试.md)。
+> `dyn-update` 只在执行与不变量全部通过后刷新基线；严格验收用
+> `python3 tools/dyn_check.py run --strict`，缺失基线也会失败。
+
+独立游玩执行器与恢复方式见 [tests/autoplay/README.md](tests/autoplay/README.md)。
+路线绑定确切的 ROM 哈希，只有完整重放并匹配结局画面才报告 `CLEAR`；
+修改 ROM 后不能直接沿用旧路线的通关结论。
+游玩中发现的日文残留与编码问题见 [docs/未翻译与编码问题.md](docs/未翻译与编码问题.md)。
 
 <details><summary>不用 make 时的等价命令</summary>
 
@@ -191,7 +206,11 @@ python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 | `python3 tools/merge_scene_edits.py` | 把 `scene_lines.tsv` 上的手改译文合并回主表（打包前必做） |
 | `python3 tools/romdbg.py list --entry 500` | 按引擎播放顺序列对白行（实机文本） |
 | `python3 tools/romdbg.py play --state x.ss1 --keys "A@120:4"` | 无头复跑 + 逐步截图 |
-| `python3 tools/romdbg.py where --state x.ss1` | 报告存档里正在演哪一行 |
+| `python3 tools/romdbg.py where --state x.ss1` | 报告存档里的**条目号 / 场景号 / 行号** |
+| `python3 tools/state_inspect.py entry a.ss1 b.ss1` | 不跑模拟器，一次列出多份存档的条目/场景/行 |
+| `make check-dyn` | 动态回归：冷启动复跑固定路线，比对不变量与证据哈希（见 `docs/动态测试.md`） |
+| `python3 tools/check_append_guard.py` | 追加条目的对齐与零 guard 检查（已并入 `make verify`） |
+| `python3 tools/crash_bisect.py --self-test` | 验证崩溃二分的逻辑；真出崩溃时传 `--state` 二分最小崩溃集 |
 | `python3 tools/export_scene_context.py --entries 1-20 --out work/scenes/e1_20.tsv` | 导出整场景复核对 |
 | `python3 tools/import_script.py --master ... --rom ... --out ...` | 回写生成中文 ROM |
 | `python3 tools/import_script.py ... --report-only` | 只报告不写盘（预检译文） |
