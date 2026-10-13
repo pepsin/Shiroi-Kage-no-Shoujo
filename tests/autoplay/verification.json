@@ -1,27 +1,27 @@
 {
   "status": "CLEAR",
-  "route_sha256": "bc01b76c4db0622aac77eda5fe0671f5e899dc229f7a3bb4769247f68259ce8e",
-  "rom_sha256": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181",
+  "route_sha256": "acbe4bfbca2408c2c17598e0624cc6e920ed8a0703692bcb614e54d9c4cf21bd",
+  "rom_sha256": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9",
   "segments": 124,
   "frames": 1489738,
   "ending": {
     "description": "完成主线结局与制作人员名单后，显示通关密码 NSYS。",
     "ppm_sha256": "d9e47962125666033dd2dfa0da2bcd174b172cda3e50fcf7367824f981796504"
   },
-  "verified_at_utc": "2026-10-13T07:57:29.866780+00:00",
+  "verified_at_utc": "2026-10-13T08:27:03.136587+00:00",
   "command": "make autoplay AUTOPLAY_ARGS='--route work/revalidate/route.candidate.json'",
   "cold_start": true,
   "mgba_version": "0.10.5",
   "harness_source_sha256": "407b7f91e0e12ea41c79dde7f5b9fc7144720304dbc50cfe48b43412b79bfc35",
-  "translation_sha256": "703ddee4ac92a3ad25d15e3d668f772947a61eaf6c10ffb700180eb100ad0254",
+  "translation_sha256": "129d98e9a39d55dad9e8a6d7523af6d3719bc2bf7ba14c76cf1af4aba69c4e79",
   "location_assets_sha256": "ab42d570933f573b8de979db3ffc2b438e1e3e15859b933a7c9b7c93d9ae0407",
   "unit_tests": 79,
   "strict_dynamic_checks": 5,
   "choice_review": {
     "enabled": true,
-    "screenshots": 671,
+    "screenshots": 672,
     "counts": {
-      "inference": 671
+      "inference": 672
     },
     "observer_source_sha256": "1ed35615136b6fc74c614352047c02681e711430f8d5fc2d52340cfe85d3d9fd",
     "walkthrough_entry_coverage": {
@@ -40,14 +40,28 @@
     "custom_output_directory": false
   },
   "translation_revision": {
-    "changed_rows": 18,
-    "entries": [
-      318,
-      320
+    "changed_rows": 8,
+    "rows": [
+      "324:43",
+      "324:44",
+      "330:1",
+      "332:46",
+      "339:5",
+      "345:42",
+      "350:1",
+      "370:1"
     ],
-    "approved_adjustments": {
-      "318:6": "父及妻",
-      "318:17": "」哲司的父亲与妻子吗『"
-    }
-  }
+    "entries": [
+      324,
+      330,
+      332,
+      339,
+      345,
+      350,
+      370
+    ],
+    "base_commit": "c119637ac3d07caf92ea1475312f13bb3316e120"
+  },
+  "scene_lines_sha256": "6c401211d29e9cb13668e2b0598d37ec08fcba8b2efbaf087962cee4400ae881",
+  "independent_cold_runs": 2
 }

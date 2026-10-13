@@ -4,7 +4,7 @@
    "check_hash": "2a51456f3f7568f85db556a50c79ce2705f8f2b412c725dfe768aab5517c1536",
    "hashes": {
     "cn": {
-     "ewram": "751064debd241c97f57065a692608e15e76c5f26d39202347badd5241cc4c641",
+     "ewram": "50345679a771d3def8403464823c62f035dd39d28add5d0012afb7f2b0de09d9",
      "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
      "samples": "28a6e1d974bdaa0f386e8e33356db04085250e35eb5d0c6b88a3619483730edb",
      "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
@@ -33,14 +33,14 @@
     }
    },
    "rom_hash": {
-    "cn": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181"
+    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
    }
   },
   "cn-funeral-to-reception": {
    "check_hash": "0a98e0faadf1b57258a3b01e344caadd220f1cda7ed3d8792149180bad18814c",
    "hashes": {
     "cn": {
-     "ewram": "f98514eeeed9d3067b807655d74604af819774221fdd47fb38eea6a9b04b28dd",
+     "ewram": "296d16c73a9a74defe77f436254642fc162e62293284944313f155c6c7754081",
      "iwram": "3c089794fa7e99267529ad234692d6dcd894229da2d9e045b27b7e31b722479d",
      "samples": "b1a38bfa3f5179d14b68db6d7707997f6e00fe3db1cde02fad28369748faf4ba",
      "shot": "19e09d488f1ab5b97ebdd0b775314b444df5cc8e91913c3d9d56c56d07ad2efc",
@@ -69,14 +69,14 @@
     }
    },
    "rom_hash": {
-    "cn": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181"
+    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
    }
   },
   "cn-mash-a-advances": {
    "check_hash": "ed0c0b66256c08bb58c1c1fe7768092b64353a3779be87e1bfc001dbdaf9c252",
    "hashes": {
     "cn": {
-     "ewram": "17f7ed472eade615f4895ea3096c7225d73e209a67aa49184c535fba42bfe530",
+     "ewram": "ab141873d8afa40663b0c95cef7ffab1f77cf2cf04f98ca5d8f899876c5ba56b",
      "iwram": "f467dd05337c80595ab45881b7b733df9ea3009dc52422e0a33d8c8d0f3d06bc",
      "samples": "347029bfb861a23b0775851efadb24de6a6b91be49c5ccc5b93a3fbc35441d07",
      "shot": "0db66b7fc079ed0d27d0b734f264ac6a13d84aa3c55357c0d949dd7f00cab677",
@@ -105,14 +105,14 @@
     }
    },
    "rom_hash": {
-    "cn": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181"
+    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
    }
   },
   "cn-study-search-complete": {
    "check_hash": "f50d5e4d1991d45400ee921863958ff2fe1cdbf9fab4770fac62439b3ce9f1cd",
    "hashes": {
     "cn": {
-     "ewram": "b42bb49983bd64ca8d3a8c92c10e03ac234afe3b8ce4fe22ba9cdf46845ae24d",
+     "ewram": "b2e28d3f7e2a472f99706a977fa953b3240a7de865927b38f52cb428c373e76f",
      "iwram": "639d8d6994a1d0d14e7309ffe0b86bb55b0ac4d635298cec93e1c4cb19e2aa2e",
      "samples": "94a4da93836cdf7b36570c34160ba8e32dada391c19e57966d8f4b720e8bac69",
      "shot": "d442015e1c5aaf9220d01097fa91485655f9be7a71b8791ca82c89bc053ec222",
@@ -141,14 +141,14 @@
     }
    },
    "rom_hash": {
-    "cn": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181"
+    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
    }
   },
   "jp-cn-same-route-funeral": {
    "check_hash": "2b6ffc19c4ee45782e581fdef810fada8548ca140b7f2de9a571bbc6aa888783",
    "hashes": {
     "cn": {
-     "ewram": "751064debd241c97f57065a692608e15e76c5f26d39202347badd5241cc4c641",
+     "ewram": "50345679a771d3def8403464823c62f035dd39d28add5d0012afb7f2b0de09d9",
      "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
      "samples": "0a524aace1eb7b92fb89b715f773e49541c1e30fedf53572bf6a30222fda81c4",
      "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
@@ -202,13 +202,13 @@
     }
    },
    "rom_hash": {
-    "cn": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181",
+    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9",
     "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
    }
   }
  },
  "rom_hash": {
-  "cn": "27f84b474d41789d0caf87450b4f165aa86dfedf3bb9c8a1c3b979ec41a43181",
+  "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9",
   "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
  },
  "version": 1
