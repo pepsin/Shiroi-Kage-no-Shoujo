@@ -4,7 +4,7 @@
    "check_hash": "2a51456f3f7568f85db556a50c79ce2705f8f2b412c725dfe768aab5517c1536",
    "hashes": {
     "cn": {
-     "ewram": "bc2a1f64f212683f154f211d836afed0481ecc1b5a119bafa933a21c8b95868f",
+     "ewram": "12c0def49076f057bdc475a050b8a0575c236ce8864017d333cc083f6682cd2e",
      "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
      "samples": "28a6e1d974bdaa0f386e8e33356db04085250e35eb5d0c6b88a3619483730edb",
      "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
@@ -40,7 +40,7 @@
    "check_hash": "0a98e0faadf1b57258a3b01e344caadd220f1cda7ed3d8792149180bad18814c",
    "hashes": {
     "cn": {
-     "ewram": "01ffc98e83c9b86277a85167038fb4d314c70c670b139bcfc2d1a45a23829967",
+     "ewram": "81f9e5a69db491e3a6fff43b3413c22da6781093daee04fee508a3379cf7a412",
      "iwram": "3c089794fa7e99267529ad234692d6dcd894229da2d9e045b27b7e31b722479d",
      "samples": "b1a38bfa3f5179d14b68db6d7707997f6e00fe3db1cde02fad28369748faf4ba",
      "shot": "404c9cf13ea2baed06a6a37fb2102dbc1d9b9f97c42a5c731332c87c78a8faa9",
@@ -69,14 +69,14 @@
     }
    },
    "rom_hash": {
-    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+    "cn": "14a5b322aec7866aaa1684f472b9bd8347850495d7d84184052e92f702a758f5"
    }
   },
   "cn-mash-a-advances": {
    "check_hash": "ed0c0b66256c08bb58c1c1fe7768092b64353a3779be87e1bfc001dbdaf9c252",
    "hashes": {
     "cn": {
-     "ewram": "c5ef7e8098b65bdf301a02e22032fe6b0c76f01cd2a38bfaade0e8cb261243bd",
+     "ewram": "4dab9bb8ee26e50813827dcb20eacf4051310ee69d92147626e996098b4e53b5",
      "iwram": "f467dd05337c80595ab45881b7b733df9ea3009dc52422e0a33d8c8d0f3d06bc",
      "samples": "347029bfb861a23b0775851efadb24de6a6b91be49c5ccc5b93a3fbc35441d07",
      "shot": "0db66b7fc079ed0d27d0b734f264ac6a13d84aa3c55357c0d949dd7f00cab677",
@@ -105,15 +105,15 @@
     }
    },
    "rom_hash": {
-    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+    "cn": "14a5b322aec7866aaa1684f472b9bd8347850495d7d84184052e92f702a758f5"
    }
   },
   "cn-study-search-complete": {
    "check_hash": "f50d5e4d1991d45400ee921863958ff2fe1cdbf9fab4770fac62439b3ce9f1cd",
    "hashes": {
     "cn": {
-     "ewram": "1f6b285a8d7cf281cd7963cf55095b7335180b502dc208510f028c892bb3d3fd",
-     "iwram": "9ca2ec8149a8d39a2a5c5f9c27226c690fa2b690cb0f2beb58f26717dc67c0a6",
+     "ewram": "6317f222aee5bd81bf5988348ac3b9849a86d4f49f989bd48aae895207998e8b",
+     "iwram": "fe0c2e32f98fe960059c54ecb787e005eef7fb9b6b2466fc3d1230f19124ee97",
      "samples": "94a4da93836cdf7b36570c34160ba8e32dada391c19e57966d8f4b720e8bac69",
      "shot": "57f3b97da806cdc4bc7d0c22f8a957a0b905a5e3acc36eba5b5292ff6852bd2c",
      "vram": "5b2feab7568964b026adc01d8b9c490b281d551e09ba3442d3eea174340f0c5d"
@@ -127,7 +127,7 @@
      "entry_conf": "1952/1952",
      "ewram_nonzero": 66399,
      "idx": 197,
-     "iwram_nonzero": 9199,
+     "iwram_nonzero": 9185,
      "key_b": 7,
      "line": 8277,
      "line_text": "调查也能顺利推进了，",
@@ -141,14 +141,14 @@
     }
    },
    "rom_hash": {
-    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0"
+    "cn": "14a5b322aec7866aaa1684f472b9bd8347850495d7d84184052e92f702a758f5"
    }
   },
   "jp-cn-same-route-funeral": {
    "check_hash": "2b6ffc19c4ee45782e581fdef810fada8548ca140b7f2de9a571bbc6aa888783",
    "hashes": {
     "cn": {
-     "ewram": "bc2a1f64f212683f154f211d836afed0481ecc1b5a119bafa933a21c8b95868f",
+     "ewram": "12c0def49076f057bdc475a050b8a0575c236ce8864017d333cc083f6682cd2e",
      "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
      "samples": "0a524aace1eb7b92fb89b715f773e49541c1e30fedf53572bf6a30222fda81c4",
      "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
@@ -202,13 +202,13 @@
     }
    },
    "rom_hash": {
-    "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0",
+    "cn": "14a5b322aec7866aaa1684f472b9bd8347850495d7d84184052e92f702a758f5",
     "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
    }
   }
  },
  "rom_hash": {
-  "cn": "790ec059c5895298be89583b17b757f2354640afe3eb9573bb06342f3b986af0",
+  "cn": "14a5b322aec7866aaa1684f472b9bd8347850495d7d84184052e92f702a758f5",
   "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
  },
  "version": 1
