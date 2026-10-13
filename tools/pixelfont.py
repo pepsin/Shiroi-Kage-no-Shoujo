@@ -19,6 +19,8 @@ Usage:
   pixelfont.py --sample 汉字              # ASCII preview of each glyph
   pixelfont.py --png out.png 汉字ABC       # rendered with the game palette
 """
+from work_paths import output_file
+
 import argparse
 import os
 
@@ -124,10 +126,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--font', default=DEFAULT)
     ap.add_argument('--sample', help='print ASCII art for these characters')
-    ap.add_argument('--png', metavar='OUT', help='render those characters to a PNG')
+    ap.add_argument('--png', action='store_true', help='保存到 work/images/pixel-font.png')
     ap.add_argument('--text', default='汉字测试 A1')
     ap.add_argument('--scale', type=int, default=8)
     a = ap.parse_args()
+    a.png = output_file('images/pixel-font.png') if a.png else ''
     pf = PixelFont(a.font)
     text = a.sample or a.text
     cells = []

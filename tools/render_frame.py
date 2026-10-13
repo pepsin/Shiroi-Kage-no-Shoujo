@@ -5,8 +5,10 @@ gbarun's own PPM capture is blank with stock libmgba, but the memory dump is
 complete, so we rebuild the visible frame here (mode 0/1, 4bpp + 8bpp BGs).
 
 Usage:
-  render_frame.py <prefix> <frame> <out.png> [--scale 3] [--bg 0,1,2,3]
+  render_frame.py <prefix> <frame> [--scale 3] [--bg 0,1,2,3]
 """
+from work_paths import output_file
+
 import argparse
 import os
 import struct
@@ -102,10 +104,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('prefix')
     ap.add_argument('frame')
-    ap.add_argument('out')
     ap.add_argument('--scale', type=int, default=3)
     ap.add_argument('--bg', default='')
     a = ap.parse_args()
+    a.out = output_file('images/render-frame.png')
     reg = load_dump(a.prefix, a.frame)
     only = [int(x) for x in a.bg.split(',')] if a.bg else None
     img = render(reg, a.scale, only)

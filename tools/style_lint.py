@@ -24,8 +24,10 @@ Usage
   style_lint.py --kind scene --top 30
   style_lint.py --scene 9.0 --lines      # every flagged line of one scene
   style_lint.py --entries 1-20 --top 15
-  style_lint.py --out work/style.tsv
+  style_lint.py
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -137,8 +139,8 @@ def main():
     ap.add_argument('--top', type=int, default=30)
     ap.add_argument('--min-rows', type=int, default=5)
     ap.add_argument('--lines', action='store_true', help='print flagged lines')
-    ap.add_argument('--out', default='')
     a = ap.parse_args()
+    a.out = output_file('reports/style-lint.tsv')
 
     scenes, by_scene, order = load()
     entries = None

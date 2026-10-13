@@ -5,10 +5,12 @@ Renders each BG (with scroll, 4bpp/8bpp) and the OBJ layer from the gbAs chunk
 so a JP reference state and a CN state can be lined up visually.
 
 Usage:
-  state_compare.py A.ss1 B.ss2 out.png
+  state_compare.py A.ss1 B.ss2  # work/images/state-compare.png
 """
 import os
 import struct
+import argparse
+from work_paths import output_file
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -35,7 +37,12 @@ def to_img(grid):
 
 
 def main():
-    a_path, b_path, out = sys.argv[1], sys.argv[2], sys.argv[3]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('first')
+    parser.add_argument('second')
+    args = parser.parse_args()
+    a_path, b_path = args.first, args.second
+    out = output_file('images/state-compare.png')
     ra, rb = rs.read_state(a_path), rs.read_state(b_path)
     names = ['bg0', 'bg1', 'bg2', 'bg3', 'obj']
     scale = 2

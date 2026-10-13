@@ -13,6 +13,7 @@ import sys
 
 from autoplay import ROOT, DEFAULT_ROM, atomic_json, digest, load_route
 from harness_utils import HarnessError, run_harness
+from work_paths import REVALIDATE, fixed_run
 
 
 def revalidate(route_path, rom, harness, out, candidate, *, timeout=120):
@@ -52,16 +53,19 @@ def revalidate(route_path, rom, harness, out, candidate, *, timeout=120):
     return result
 
 
-def main():
+def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--route', type=Path, default=ROOT / 'tests/autoplay/route.json')
     p.add_argument('--rom', type=Path, default=DEFAULT_ROM)
     p.add_argument('--harness', type=Path, default=ROOT / 'work/bin/gbarun_dbg')
-    p.add_argument('--out', type=Path, required=True, help='新的冷启动证据目录')
-    p.add_argument('--candidate', type=Path, required=True, help='新候选文件；不覆盖已验收路线')
-    args = p.parse_args()
+    args = p.parse_args(argv)
     try:
-        revalidate(args.route, args.rom, args.harness, args.out, args.candidate)
+        route, _ = load_route(args.route)
+        if route['status'] != 'complete' or not args.rom.is_file() or not args.harness.is_file():
+            raise ValueError('需要完整路线、现有 ROM 和已编译的 harness')
+        with fixed_run(REVALIDATE, inputs=(args.route, args.rom, args.harness)):
+            revalidate(args.route, args.rom, args.harness, REVALIDATE / 'checkpoints',
+                       REVALIDATE / 'route.candidate.json')
     except (OSError, ValueError, HarnessError) as exc:
         print(f'FAIL: {exc}', file=sys.stderr)
         return 1

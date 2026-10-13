@@ -7,11 +7,13 @@ flagged lines becomes one block.  Everything is keyed by (entry, index) so the
 answer can be fed straight back to apply_cn_patch.py.
 
 Usage:
-  export_qa_context.py --worklist work/qa.tsv --out work/batch1.tsv --from 0 --count 60
-  export_qa_context.py --worklist work/qa.tsv --entry 3 --out work/batch_e3.tsv
+  export_qa_context.py --worklist work/reports/qa-translation.tsv --from 0 --count 60
+  export_qa_context.py --worklist work/reports/qa-translation.tsv --entry 3
 
 Output columns: entry, idx, flag, budget, JP, CN   (flag is FLAG or ctx)
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -26,12 +28,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--worklist', required=True)
     ap.add_argument('--table', default=os.path.join(ROOT, 'data', 'translation.tsv'))
-    ap.add_argument('--out', required=True)
     ap.add_argument('--from', dest='start', type=int, default=0)
     ap.add_argument('--count', type=int, default=60)
     ap.add_argument('--entry')
     ap.add_argument('--context', type=int, default=CONTEXT)
     a = ap.parse_args()
+    a.out = output_file('reports/qa-context.tsv')
 
     table = {}
     for r in csv.reader(open(a.table, encoding='utf-8', newline=''), delimiter='\t'):

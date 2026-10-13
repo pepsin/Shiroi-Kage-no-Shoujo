@@ -15,38 +15,35 @@ ROM、路线与终点画面的哈希见 [verification.json](verification.json)�
 
 ```bash
 make autoplay
-python3 tools/autoplay.py --out work/my-playthrough
-python3 tools/autoplay.py --out work/my-playthrough --resume
+make autoplay AUTOPLAY_ARGS='--resume'
 ```
 
-默认每次创建新的 `work/autoplay/<时间>-<运行号>/` 目录。指定目录已有记录时，
-执行器要求明确续跑，避免覆盖已有验收证据。恢复时校验路线、ROM 和断点的 SHA256。
+输出固定为 `work/autoplay/`，不接受自定义输出目录。默认从冷启动重跑并更新上次产物；
+`--resume` 校验路线、ROM 和断点 SHA256 后续跑。每个工具只保留最新一次运行，需留档请事先复制。
+并发运行会被拒绝。分段证据集中在 `checkpoints/`，运行日志为 `run.log`。
+所有工具的输出位置见 [输出目录规范](../../docs/输出目录.md)，统一入口是 `work/index.html`。
 
-## 选项截图审核
+## 推理题截图审核
 
-`make autoplay` 默认保存本次路线实际遇到的对话选项、推理选项（含滚动后出现的新页）、
-行动菜单、物品选择和地图选择。打开本次输出目录中的 `choice-review/index.html`，
-可按类型筛选、放大查看；原始 240×160 PNG 不经重绘，索引列出脚本条目、分段和帧号
-（帧号从 0 开始）。
-`index.json` 还记录重复出现的位置、图片 SHA256 和运行状态。未完成的运行显示
-`IN_PROGRESS` 或 `PARTIAL`，不会被标成已通关。
+`make autoplay` 默认只保存本路线实际遇到的推理题（含滚动后出现的新页）。
+打开 **`work/autoplay/inference-review/index.html`** 查看原始 240×160 PNG。
+`index.json` 记录脚本条目、分段、帧号、重复出现的位置、图片 SHA256 和运行状态。
+帧号从 0 开始，未完成运行显示 `IN_PROGRESS` 或 `PARTIAL`。
 
 ```bash
-make autoplay AUTOPLAY_ARGS='--out work/option-review'
-# 审核页：work/option-review/choice-review/index.html
-# 只跑验证、关闭截图：
+# 只跑验证、关闭推理题截图：
 make autoplay AUTOPLAY_ARGS='--no-choice-capture'
 ```
 
-截图仅使用模拟器已经渲染的画面：在下一次按键前一帧及分段末尾读取 UI／剧本状态，
-识别普通选项和推理列表，不注入按键、改 RAM、暂停或增加游戏帧数。相同脚本内，
-只改变高亮的文字选项合并为一张；滚动后的不同内容、不同脚本实例分别保留。
-它覆盖当前路线实际显示过的页面，不代表已经遍历所有支线或未滚动到的选项。
+截图取自模拟器渲染结果：下一次按键前一帧及分段末尾读取 UI／剧本状态，
+只保留推理脚本里已经显示列表的画面。不增加游戏帧数或输入，不改 RAM。
+相同脚本内只改变高亮的画面合并；滚动后的不同内容、不同脚本实例分别保留。
+覆盖范围是当前路线实际显示的页面，不代表所有支线或未滚动到的选项。
 
-整个 `choice-review/` 目录均由 `.gitignore` 排除，自定义 `--out` 时也适用；
-截图和审核索引不提交。原始采集快照在每段处理后清理。审核不需要 Pillow、OCR 或 AI。
-续跑必须保持原来的截图设置，并校验已保存图片；旧版无截图的运行请使用
-`--resume --no-choice-capture`，如需完整截图则在新目录从冷启动重跑。
+整个 `work/` 和审核目录都由 `.gitignore` 排除，截图与索引不提交。
+采集快照在每段处理后清理；审核不需要 Pillow、OCR 或 AI。
+续跑必须保持原来的截图设置，并校验已保存图片。旧版混合选项图库不能直接续跑，
+请重新执行 `make autoplay` 生成推理题图库。
 
 ## 通关验证
 
@@ -61,13 +58,12 @@ make autoplay AUTOPLAY_ARGS='--no-choice-capture'
 译文或图片修改后，使用同一输入序列验证新 ROM：
 
 ```bash
-python3 tools/revalidate_autoplay.py --out work/revalidate-new \
-  --candidate work/route-new.json
-make autoplay AUTOPLAY_ARGS='--route work/route-new.json --out work/replay-new'
+python3 tools/revalidate_autoplay.py
+make autoplay AUTOPLAY_ARGS='--route work/revalidate/route.candidate.json'
 ```
 
-第一步必须从冷启动跑完并匹配原通关画面，才生成候选；新目录和新候选文件均不得
-覆盖既有证据，失败不更新路线。第一步结果为 `CANDIDATE_REQUIRES_REPLAY`。
+第一步从冷启动跑完并匹配原通关画面，才生成 `work/revalidate/route.candidate.json`；
+每次更新该工具自己的产物，失败不生成候选，也不会改动已验收路线。第一步结果为 `CANDIDATE_REQUIRES_REPLAY`。
 第二步仍由原执行器逐段严格验证全部 RAM 和画面，只有第二次运行得到 `CLEAR`，
 才把候选替换为 `tests/autoplay/route.json` 并更新 `verification.json`。
 若终点画面本身有意修改，不能通过刷新旧终点哈希绕过失败；应正常游玩、观察新终点，
@@ -82,8 +78,9 @@ make autoplay AUTOPLAY_ARGS='--route work/route-new.json --out work/replay-new'
 `--ending` 注明所见结局，之后必须用独立执行器再验证一次完整冷启动回放。
 
 ```bash
-python3 tools/export_autoplay.py work/playthrough-session tests/autoplay/route.json
+python3 tools/export_autoplay.py work/playthrough-session
+# 候选：work/route-export/route.candidate.json
 ```
 
-导出工具需要 Pillow；独立回放执行器和选项截图都不需要 Pillow。字形识别、攻略解析和探索控制器
+导出工具需要 Pillow；独立回放执行器和推理题截图都不需要 Pillow。字形识别、攻略解析和探索控制器
 都不参与最终固定路线回放。

@@ -94,7 +94,7 @@ def group_rows(rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--rom', default=os.path.join(ROOT, 'out.gba'))
+    ap.add_argument('--rom', default=os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba'))
     ap.add_argument('--out', default='')
     ap.add_argument('--dir', default=os.path.join(ROOT, 'data', 'glyph_png'))
     ap.add_argument('--manifest', default='')

@@ -22,6 +22,8 @@ Usage
   qa_style.py --limit 40      # cap the examples printed
   qa_style.py --json work/qa_style.json
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -158,8 +160,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--list', dest='show', default='')
     ap.add_argument('--limit', type=int, default=20)
-    ap.add_argument('--json', default='')
+    ap.add_argument('--json', action='store_true', help='保存到 work/reports/qa-style.json')
     a = ap.parse_args()
+    a.json = output_file('reports/qa-style.json') if a.json else ''
 
     rows = load()
     hits = scan(rows)

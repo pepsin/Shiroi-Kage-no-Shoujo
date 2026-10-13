@@ -5,9 +5,11 @@ The title-screen menu plates are sprites, not BG text, which is why they show
 up in neither the BG tilemaps nor the font table search.
 
 Usage:
-  dump_sprites.py <prefix> <frame> <out.png> [--scale 4] [--sheet]
+  dump_sprites.py <prefix> <frame> [--scale 4] [--sheet]
     --sheet  dump the raw OBJ tile sheet (0x06010000, 1D mapping) instead
 """
+from work_paths import output_file
+
 import argparse
 import os
 import struct
@@ -39,10 +41,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('prefix')
     ap.add_argument('frame')
-    ap.add_argument('out')
     ap.add_argument('--scale', type=int, default=4)
     ap.add_argument('--sheet', action='store_true')
     a = ap.parse_args()
+    a.out = output_file('images/dump-sprites.png')
 
     from PIL import Image
     reg = load_dump(a.prefix, a.frame)

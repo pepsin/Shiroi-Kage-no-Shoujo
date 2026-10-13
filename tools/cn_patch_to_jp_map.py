@@ -8,8 +8,10 @@ that safe: rows whose existing Chinese already differs are left alone instead of
 being overwritten with wording meant for another context.
 
 Usage:
-  cn_patch_to_jp_map.py patch1.tsv [patch2.tsv ...] --out work/map.tsv
+  cn_patch_to_jp_map.py patch1.tsv [patch2.tsv ...]
 """
+from work_paths import output_file
+
 import argparse
 import csv
 import hashlib
@@ -23,8 +25,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('patches', nargs='+')
     ap.add_argument('--table', default=os.path.join(ROOT, 'data', 'translation.tsv'))
-    ap.add_argument('--out', required=True)
     a = ap.parse_args()
+    a.out = output_file('reports/jp-map.tsv')
 
     table = {}
     counts = {}

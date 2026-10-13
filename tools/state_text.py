@@ -50,7 +50,7 @@ def font_table(rom):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('state')
-    ap.add_argument('--rom', default=os.path.join(ROOT, 'out.gba'))
+    ap.add_argument('--rom', default=os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba'))
     ap.add_argument('--map', default=os.path.join(ROOT, 'work', 'glyph_map.ext.csv'))
     ap.add_argument('--bg', default='')
     a = ap.parse_args()

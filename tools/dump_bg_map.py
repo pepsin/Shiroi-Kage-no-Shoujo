@@ -5,8 +5,10 @@ Used to inspect pre-rendered background art (title screen menu plates etc.)
 that is stored as a tile strip rather than font glyphs.
 
 Usage:
-  dump_bg_map.py <prefix> <frame> <out.png> [--bg N] [--scale 2] [--map-only]
+  dump_bg_map.py <prefix> <frame> [--bg N] [--scale 2] [--map-only]
 """
+from work_paths import output_file
+
 import argparse
 import os
 import struct
@@ -39,12 +41,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('prefix')
     ap.add_argument('frame')
-    ap.add_argument('out')
     ap.add_argument('--bg', type=int, default=3)
     ap.add_argument('--scale', type=int, default=2)
     ap.add_argument('--map-only', action='store_true',
                     help='dump the raw tile-index map as greyscale instead of pixels')
     a = ap.parse_args()
+    a.out = output_file('images/dump-bg-map.png')
 
     from PIL import Image
     reg = load_dump(a.prefix, a.frame)

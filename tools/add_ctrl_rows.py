@@ -31,6 +31,8 @@ Usage:
   add_ctrl_rows.py                # append the rows to data/translation.tsv
   add_ctrl_rows.py --report out.tsv   # write the candidate list
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -201,9 +203,10 @@ def main():
     ap.add_argument('--master', default=os.path.join(ROOT, 'data', 'translation.tsv'))
     ap.add_argument('--rom', default=g.JP_ROM)
     ap.add_argument('--translations', default=CTRL_TSV)
-    ap.add_argument('--report', default='', help='write the candidate list here')
+    ap.add_argument('--report', action='store_true', help='保存到 work/reports/control-rows.tsv')
     ap.add_argument('--dry-run', action='store_true')
     a = ap.parse_args()
+    a.report = output_file('reports/control-rows.tsv') if a.report else ''
 
     rom = open(a.rom, 'rb').read()
     table = load_text_table()

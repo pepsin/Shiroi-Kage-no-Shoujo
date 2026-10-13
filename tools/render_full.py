@@ -6,8 +6,10 @@ reading the text layer but hides sprite-drawn UI (the title menu plates) and
 mis-places anything whose scroll is not 0.  This renders what the player sees.
 
 Usage:
-  render_full.py <prefix> <frame> <out.png> [--scale 3] [--no-obj]
+  render_full.py <prefix> <frame> [--scale 3] [--no-obj]
 """
+from work_paths import output_file
+
 import argparse
 import os
 import struct
@@ -46,12 +48,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('prefix')
     ap.add_argument('frame')
-    ap.add_argument('out')
     ap.add_argument('--scale', type=int, default=3)
     ap.add_argument('--no-obj', action='store_true')
     ap.add_argument('--only-bg', type=int, default=None,
                     help='render only this BG layer (others stay transparent)')
     a = ap.parse_args()
+    a.out = output_file('images/render-full.png')
 
     from PIL import Image
     reg = load_dump(a.prefix, a.frame)

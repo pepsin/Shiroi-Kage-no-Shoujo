@@ -15,8 +15,10 @@ the scanner's garbage comes from restarting mid-run (`i = start + 2`), so
 requiring "preceded by NUL" separates the two cleanly.
 
 Usage:
-  find_missing_runs.py [--out work/missing_runs.tsv] [--min-len 2]
+  find_missing_runs.py [--min-len 2]
 """
+from work_paths import output_file
+
 import argparse
 import bisect
 import csv
@@ -98,10 +100,10 @@ def covered(spans, off):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=os.path.join(ROOT, 'work', 'missing_runs.tsv'))
     ap.add_argument('--min-len', type=int, default=2)
     ap.add_argument('--rom', default=g.JP_ROM)
     a = ap.parse_args()
+    a.out = output_file('reports/missing-runs.tsv')
 
     dec = mapio.load_map(os.path.join(ROOT, 'data', 'glyph_map.csv'))
     rom = open(a.rom, 'rb').read()

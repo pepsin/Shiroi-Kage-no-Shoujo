@@ -15,8 +15,10 @@ GBASerializedState layout (0x61000 bytes, see mgba/internal/gba/serialize.h):
     0x21000  WRAM
 
 Usage:
-  render_state.py <state.ssN> <out.png> [--scale 3] [--layers bgs,obj]
+  render_state.py <state.ssN> [--scale 3] [--layers bgs,obj]
 """
+from work_paths import output_file
+
 import argparse
 import struct
 import sys
@@ -169,10 +171,10 @@ def render_obj(reg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('state')
-    ap.add_argument('out')
     ap.add_argument('--scale', type=int, default=3)
     ap.add_argument('--layers', default='bg0,bg1,bg2,bg3,obj')
     a = ap.parse_args()
+    a.out = output_file('images/render-state.png')
     reg = read_state(a.state)
     want = a.layers.split(',')
     from PIL import Image

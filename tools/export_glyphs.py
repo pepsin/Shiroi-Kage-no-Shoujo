@@ -24,7 +24,7 @@ overwrite it and tells you to run import_glyphs.py first (or pass --force).
 
 Usage:
   export_glyphs.py [--rom out.gba] [--map work/glyph_map.ext.csv]
-                   [--out data/glyph_png] [--scale 8] [--new-from 0x6A8]
+                   [--scale 8] [--new-from 0x6A8]
                    [--force]
 """
 import argparse
@@ -76,9 +76,9 @@ def safe_stem(ch):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--rom', default=os.path.join(ROOT, 'out.gba'))
+    ap.add_argument('--rom', default=os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba'))
     ap.add_argument('--map', default=os.path.join(ROOT, 'work', 'glyph_map.ext.csv'))
-    ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'glyph_png'))
+    ap.set_defaults(out=os.path.join(ROOT, 'data', 'glyph_png'))
     ap.add_argument('--scale', type=int, default=8)
     ap.add_argument('--new-from', type=lambda s: int(s, 0), default=0x6A8)
     ap.add_argument('--keep-stale', action='store_true',

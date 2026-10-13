@@ -249,7 +249,7 @@ def main():
         print(f'已补写指纹 {sig_path}：之后主表被直接改过时，过期保护会正常生效。')
     print('接着重建场景索引与 ROM：')
     print('  python3 tools/scene_index.py build')
-    print('  python3 tools/build_rom.py --out "侦探神宫寺三郎 - 白影的少女 (简中).gba"')
+    print('  python3 tools/build_rom.py')
     return 0
 
 

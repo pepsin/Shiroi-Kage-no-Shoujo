@@ -16,7 +16,7 @@ changed, `reviewed` means it was read and left alone.  Coverage of the story is
 coverage does not silently mean "every scene was rewritten".
 
 Usage:
-  worklist.py build [--out data/scene_worklist.tsv]
+  worklist.py build
   worklist.py check
 """
 import argparse
@@ -131,7 +131,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
     b = sub.add_parser('build')
-    b.add_argument('--out', default=DEFAULT_OUT)
+    b.set_defaults(out=DEFAULT_OUT)
     b.set_defaults(fn=build)
     c = sub.add_parser('check')
     c.set_defaults(fn=check)

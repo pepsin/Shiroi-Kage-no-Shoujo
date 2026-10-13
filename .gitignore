@@ -68,7 +68,8 @@ htmlcov/
 /shot_*.png
 /play_*.png
 /state_*.png
-# 自动游玩选项审核图与索引（也覆盖自定义 --out 目录）
+# 自动游玩推理题审核图与索引（兼容旧审核目录）
+inference-review/
 choice-review/
 
 # ---------- 仓库根目录的散落产物 ----------

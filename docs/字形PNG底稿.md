@@ -51,7 +51,7 @@
 ## 手工改字后怎么打回 ROM
 
 ```bash
-python3 tools/build_rom.py --out out.gba      # 打包时自动套用目录里的手改字形（含自检）
+python3 tools/build_rom.py      # 打包时自动套用目录里的手改字形（含自检）
 ```
 
 打包流程会打印 `[phase] applying hand-edited glyphs` 并报出真正改动的字数，

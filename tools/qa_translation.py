@@ -19,9 +19,11 @@ Everything else - word order, tone, whether a sentence reads well - needs a huma
 eye, so this only produces a worklist; tools/apply_cn_patch.py writes the fixes.
 
 Usage:
-  qa_translation.py [--table data/translation.tsv] [--out work/qa.tsv]
+  qa_translation.py [--table data/translation.tsv]
                     [--entry 3] [--limit 200] [--summary]
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -90,11 +92,11 @@ def check(jp, cn, budget):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--table', default=os.path.join(ROOT, 'data', 'translation.tsv'))
-    ap.add_argument('--out', default=os.path.join(ROOT, 'work', 'qa.tsv'))
     ap.add_argument('--entry')
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--summary', action='store_true')
     a = ap.parse_args()
+    a.out = output_file('reports/qa-translation.tsv')
 
     hits = []
     total = 0

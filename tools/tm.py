@@ -3,7 +3,7 @@
 
 Workflow
 --------
-  tm.py batches --size N --outdir work/tm/w01     -> batch input files
+  tm.py batches --size N     -> batch input files
   ... translator writes  bNNN.out.tsv  (rid<TAB>cn) ...
   tm.py verify work/tm/w01/*.out.tsv              -> constraint report
   tm.py apply  work/tm/w01/*.out.tsv              -> writes data/translation.tsv
@@ -215,7 +215,7 @@ def check_group_punct(pairs):
 
 def cmd_batches(a):
     _, rows = load_master()
-    outdir = a.outdir or BATCHDIR
+    outdir = BATCHDIR
     os.makedirs(outdir, exist_ok=True)
     sel = [r for r in rows if not r['translation'].strip()]
     if a.entry:
@@ -601,7 +601,6 @@ def main():
                    help='one row per distinct jp_text (dedup, ~2.7x fewer rows)')
     b.add_argument('--min-entry', type=int, default=0)
     b.add_argument('--skip-entry', action='append', default=[])
-    b.add_argument('--outdir', default='')
     b.set_defaults(func=cmd_batches)
     p = sub.add_parser('apply')
     p.add_argument('files', nargs='+')

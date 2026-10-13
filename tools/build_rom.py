@@ -21,7 +21,7 @@ Two things have to happen:
 最后是六项自检；自检不过则以非 0 退出并列出 ✗ 清单。
 
 Usage:
-  build_rom.py [--rom JP.gba] [--master data/translation.tsv] [--out out.gba]
+  build_rom.py [--rom JP.gba] [--master data/translation.tsv]
                [--headroom 128] [--no-script] [--no-preflight]
 """
 import argparse
@@ -168,10 +168,10 @@ def plan(rows, gmap, recycle=False, manifest=None, headroom=0):
 
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(allow_abbrev=False)
     ap.add_argument('--rom', default=g.JP_ROM)
     ap.add_argument('--master', default=os.path.join(ROOT, 'data', 'translation.tsv'))
-    ap.add_argument('--out', default=os.path.join(ROOT, 'out.gba'))
+    ap.set_defaults(out=os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba'))
     ap.add_argument('--headroom', type=int, default=128,
                     help='extra empty glyph slots appended for safety')
     ap.add_argument('--recycle', action='store_true',
@@ -180,8 +180,7 @@ def main():
                          'resources may still use -- off by default)')
     ap.add_argument('--no-script', action='store_true',
                     help='only patch the font table, do not import the script')
-    ap.add_argument('--glyph-dir', default=os.path.join(ROOT, 'data', 'glyph_png'),
-                    help='hand-edited glyph PNGs to apply on top of the render')
+    ap.set_defaults(glyph_dir=os.path.join(ROOT, 'data', 'glyph_png'))
     ap.add_argument('--no-glyph-edits', action='store_true',
                     help='ignore data/glyph_png hand edits')
     ap.add_argument('--outline-font', action='store_true',
@@ -406,7 +405,7 @@ def main():
         # discards the stale blanks.
         run_step('重新导出字形底稿',
                  [sys.executable, os.path.join(ROOT, 'tools', 'export_glyphs.py'),
-                  '--rom', a.out, '--out', a.glyph_dir, '--map', EXT_MAP, '--force'], a.out)
+                  '--rom', a.out, '--map', EXT_MAP, '--force'], a.out)
 
 
     # --- self-checks ------------------------------------------------------

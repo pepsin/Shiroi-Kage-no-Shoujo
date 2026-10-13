@@ -10,8 +10,10 @@ If the big character under a code does not match the bitmap above it, the
 code->character alignment is wrong for that entry.
 
 Usage:
-  font_sheet.py <rom> <out.png> [--codes 0x0DF,0x0E3,...] [--base 0x800000]
+  font_sheet.py <rom> [--codes 0x0DF,0x0E3,...] [--base 0x800000]
 """
+from work_paths import output_file
+
 import argparse
 from PIL import Image, ImageDraw, ImageFont
 
@@ -52,11 +54,11 @@ def draw_glyph(img, b, ox, oy):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('rom')
-    ap.add_argument('out')
     ap.add_argument('--codes', required=True)
     ap.add_argument('--base', default='0x800000')
     ap.add_argument('--cols', type=int, default=4)
     a = ap.parse_args()
+    a.out = output_file('images/font-sheet.png')
     rom = open(a.rom, 'rb').read()
     base = int(a.base, 0)
     codes = [int(x, 0) for x in a.codes.split(',')]

@@ -9,8 +9,8 @@
 即第 1–9 段是第 1 天，第 10–25 段是第 2 天（第 25 段结尾停在 3/12 夜）。
 
 用法：
-    python3 tools/record_video.py                      # 第 1–2 天 → 项目根目录 mp4
-    python3 tools/record_video.py --last-segment 40 --out work/video/out.mp4
+    python3 tools/record_video.py                      # 第 1–2 天 → work/video/playthrough.mp4
+    python3 tools/record_video.py --last-segment 40
 """
 import argparse
 import hashlib
@@ -24,13 +24,13 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness_utils import expand_keys  # noqa: E402
+from work_paths import VIDEO as WORK, fixed_run
 
 ROOT = Path(__file__).resolve().parents[1]
 ROM = ROOT / '侦探神宫寺三郎 - 白影的少女 (简中).gba'
 HARNESS = ROOT / 'work/bin/gbarun_dbg'
 ROUTE = ROOT / 'tests/autoplay/route.json'
-WORK = ROOT / 'work/video'
-DEFAULT_OUT = ROOT / '白影的少女-自动游玩-第1-2天.mp4'
+DEFAULT_OUT = WORK / 'playthrough.mp4'
 SHOT_RE = re.compile(r'seg(\d{4})\.ppm_shot(\d{6})\.ppm$')
 
 
@@ -45,7 +45,7 @@ def record_segments(route, last_segment, shot_every, raw):
         prefix = raw / f'seg{number:04d}.ppm'
         save = raw / f'seg{number:04d}.ss1'
         events = expand_keys(segment['keys'], segment['frames'])
-        env = dict(os.environ)
+        env = {k: v for k, v in os.environ.items() if not k.startswith('GBARUN_')}
         env['GBARUN_NO_AUTOSAVE'] = '1'
         env['GBARUN_SHOT_EVERY'] = str(shot_every)
         env['GBARUN_SAVE'] = str(save)
@@ -103,7 +103,6 @@ def main(argv=None):
     p.add_argument('--shot-every', type=int, default=32, help='每多少帧截一张（默认 32）')
     p.add_argument('--fps', type=int, default=30, help='输出帧率（默认 30）')
     p.add_argument('--scale', type=int, default=4, help='放大倍数（默认 4 → 960x640）')
-    p.add_argument('--out', type=Path, default=DEFAULT_OUT, help='输出 mp4 路径')
     p.add_argument('--keep-work', action='store_true', help='保留 work/video/ 中间产物')
     args = p.parse_args(argv)
 
@@ -117,18 +116,21 @@ def main(argv=None):
     if not 0 < args.last_segment <= len(route['segments']):
         raise SystemExit(f'段号超出范围（路线共 {len(route["segments"])} 段）')
 
-    raw = WORK / 'raw'
-    shutil.rmtree(WORK, ignore_errors=True)
-    raw.mkdir(parents=True)
-    print(f'== 复跑第 1–{args.last_segment} 段并截图（每 {args.shot_every} 帧一张）')
-    shots = record_segments(route, args.last_segment, args.shot_every, raw)
-    seconds = len(shots) / args.fps
-    print(f'== 共 {len(shots)} 帧，编码 {args.out.name}（约 {seconds / 60:.1f} 分钟）')
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    encode(shots, args.out, args.fps, args.scale)
-    if not args.keep_work:
-        shutil.rmtree(WORK, ignore_errors=True)
-    print(f'== 完成：{args.out}')
+    if min(args.shot_every, args.fps, args.scale) <= 0:
+        raise SystemExit('截图间隔、帧率和放大倍数必须大于 0')
+    with fixed_run(WORK, inputs=(ROM, ROUTE, HARNESS)):
+        raw = WORK / 'raw'
+        raw.mkdir()
+        print(f'== 复跑第 1–{args.last_segment} 段并截图（每 {args.shot_every} 帧一张）')
+        shots = record_segments(route, args.last_segment, args.shot_every, raw)
+        seconds = len(shots) / args.fps
+        print(f'== 共 {len(shots)} 帧，编码 {DEFAULT_OUT.name}（约 {seconds / 60:.1f} 分钟）')
+        pending = WORK / 'playthrough.pending.mp4'
+        encode(shots, pending, args.fps, args.scale)
+        pending.replace(DEFAULT_OUT)
+        if not args.keep_work:
+            shutil.rmtree(raw)
+        print(f'== 完成：{DEFAULT_OUT}')
 
 
 if __name__ == '__main__':

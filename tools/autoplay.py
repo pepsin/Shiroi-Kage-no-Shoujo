@@ -5,17 +5,16 @@ The manifest contains controller input, not RAM writes. Each segment starts from
 the preceding checkpoint. A partial route can be tested but never reports CLEAR.
 """
 import argparse
-from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
 import re
 import sys
 import tempfile
-import uuid
 
 from harness_utils import HarnessError, expand_keys, run_harness
-from choice_review import ChoiceReview
+from choice_review import ChoiceReview, png_from_ppm
+from work_paths import AUTOPLAY, fixed_run
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ROM = ROOT / '侦探神宫寺三郎 - 白影的少女 (简中).gba'
@@ -90,21 +89,23 @@ def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120,
         if progress.get('route_sha256') != route_hash or progress.get('rom_sha256') != actual_rom:
             raise ValueError('断点与当前路线/ROM 不一致')
         if progress.get('capture_choices', False) != capture_choices:
-            raise ValueError('续跑必须保持相同的选项截图设置；旧运行可用 --no-choice-capture')
+            raise ValueError('续跑必须保持相同的推理截图设置；无截图运行可用 --no-choice-capture')
         completed = progress.get('completed_segments')
         if type(completed) is not int or not 0 <= completed <= len(route['segments']):
             raise ValueError('断点段号无效')
         if completed:
-            previous = out / f'segment-{completed:04d}.ss1'
+            previous = out / 'checkpoints' / f'segment-{completed:04d}.ss1'
             if digest(previous.read_bytes()) != progress.get('state_sha256'):
                 raise ValueError('断点文件损坏或被替换')
     elif journal_path.exists():
-        raise ValueError('输出目录已有运行记录；用 --resume 续跑，或另选 --out 目录')
-    review = (ChoiceReview(out / 'choice-review', Path(rom).read_bytes(), route_hash,
+        raise ValueError('输出目录已有运行记录；用 --resume 续跑，或重新运行 make autoplay')
+    review = (ChoiceReview(out / 'inference-review', Path(rom).read_bytes(), route_hash,
                            completed=completed, resume=resume) if capture_choices else None)
+    checkpoints = out / 'checkpoints'
+    checkpoints.mkdir(exist_ok=True)
     preceding_frames = sum(s['frames'] for s in route['segments'][:completed])
     for number, segment in enumerate(route['segments'][completed:], completed + 1):
-        prefix = out / f'segment-{number:04d}'
+        prefix = out / 'checkpoints' / f'segment-{number:04d}'
         checkpoint = prefix.with_suffix('.ss1')
         with tempfile.TemporaryDirectory(prefix='.choices-', dir=out) as temporary:
             raw = Path(temporary) / 'raw'
@@ -125,9 +126,10 @@ def replay(route, route_hash, rom, harness, out, *, resume=False, timeout=120,
         previous = checkpoint
         print(f'[{number}/{len(route["segments"])}] {segment.get("label", "PASS")}', flush=True)
     # Resume of an already completed run still verifies its final screenshot.
-    final = out / f'segment-{len(route["segments"]):04d}.ppm'
+    final = out / 'checkpoints' / f'segment-{len(route["segments"]):04d}.ppm'
     if digest(final.read_bytes()) != route['segments'][-1]['sha256']['ppm']:
         raise HarnessError('终点截图缺失或不匹配')
+    (out / 'ending.png').write_bytes(png_from_ppm(final.read_bytes()))
     status = 'CLEAR' if route['status'] == 'complete' else 'PARTIAL'
     result = {'status': status, 'route_sha256': route_hash, 'rom_sha256': actual_rom,
               'segments': len(route['segments']),
@@ -145,22 +147,23 @@ def main(argv=None):
     p.add_argument('--route', type=Path, default=ROOT / 'tests/autoplay/route.json')
     p.add_argument('--rom', type=Path, default=DEFAULT_ROM)
     p.add_argument('--harness', type=Path, default=ROOT / 'work/bin/gbarun_dbg')
-    p.add_argument('--out', type=Path, help='证据目录；默认每次创建新的运行目录')
-    p.add_argument('--resume', action='store_true')
+    p.add_argument('--resume', action='store_true', help='续跑 work/autoplay/ 中的断点；默认从头重跑并更新该目录')
     p.add_argument('--allow-partial', action='store_true', help='调试未完成路线；结果只能为 PARTIAL')
-    p.add_argument('--no-choice-capture', action='store_true', help='关闭默认的选项截图与离线审核页')
+    p.add_argument('--no-choice-capture', action='store_true', help='关闭默认的推理题截图与离线审核页')
     args = p.parse_args(argv)
     try:
-        if args.resume and args.out is None:
-            raise ValueError('--resume 必须用 --out 指定要恢复的运行目录')
-        if args.out is None:
-            stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-            args.out = ROOT / 'work/autoplay' / f'{stamp}-{uuid.uuid4().hex[:8]}'
         route, fingerprint = load_route(args.route)
         if route['status'] != 'complete' and not args.allow_partial:
             raise ValueError('路线尚未通关；调试请显式使用 --allow-partial')
-        result = replay(route, fingerprint, args.rom, args.harness, args.out, resume=args.resume,
-                        capture_choices=not args.no_choice_capture)
+        # Validate before replacing the previous run's evidence.
+        if digest(args.rom.read_bytes()) != route['rom_sha256']:
+            raise ValueError('ROM 与路线版本不一致；不能沿用旧路线证明新 ROM 通关')
+        if not args.harness.is_file():
+            raise ValueError('调试 harness 未编译：先跑 make dbg')
+        with fixed_run(AUTOPLAY, resume=args.resume,
+                       inputs=(args.route, args.rom, args.harness)):
+            result = replay(route, fingerprint, args.rom, args.harness, AUTOPLAY,
+                            resume=args.resume, capture_choices=not args.no_choice_capture)
     except (OSError, ValueError, HarnessError) as exc:
         print(f'FAIL: {exc}', file=sys.stderr)
         return 1

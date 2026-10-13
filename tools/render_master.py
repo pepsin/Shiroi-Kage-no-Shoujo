@@ -5,8 +5,10 @@ Single PNG: every glyph 0x000..0x6A7 at 4x (64px) with its 3-digit hex
 table index printed underneath. Codes match glyph_map.csv's `code` column
 row-for-row, so the map can be proofread against this image.
 
-Usage: render_master.py <rom> <out.png> [--base 0x66F440] [--cols 32]
+Usage: render_master.py <rom> [--base 0x66F440] [--cols 32]
 """
+from work_paths import output_file
+
 import argparse
 from PIL import Image
 
@@ -59,10 +61,10 @@ def draw_glyph(img, b, ox, oy):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('rom')
-    ap.add_argument('out')
     ap.add_argument('--base', default='0x66F440')
     ap.add_argument('--cols', type=int, default=32)
     a = ap.parse_args()
+    a.out = output_file('images/render-master.png')
     rom = open(a.rom, 'rb').read()
     base = int(a.base, 0)
     avail = (len(rom) - base) // 0x80

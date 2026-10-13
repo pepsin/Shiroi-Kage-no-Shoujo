@@ -1,5 +1,8 @@
 # 侦探神宫寺三郎 — 白影的少女 · GBA 汉化工程
 
+工具输出统一入口：`work/index.html`（`make outputs` 生成）。推理题审核图固定在
+`work/autoplay/inference-review/index.html`；[完整输出目录规范](docs/输出目录.md)。
+
 ## 提示
 本项目为兴趣项目，业余时间开发，本人非专业翻译或者专业游戏开发者，产出项目有不足之处全怪 AI，语句不通顺之处请提交 PR 修改或者在项目 issue 出提出。
 
@@ -63,8 +66,8 @@ make help       # 全部目标
 > `python3 tools/dyn_check.py run --strict`，缺失基线也会失败。
 
 独立游玩执行器与恢复方式见 [tests/autoplay/README.md](tests/autoplay/README.md)。
-默认生成 `work/autoplay/<运行目录>/choice-review/index.html` 供选项画面审核，
-含普通选项和推理列表滚动页；截图与索引不会被 Git 追踪。
+推理题审核页固定为 `work/autoplay/inference-review/index.html`，
+只保留推理题及列表滚动页；截图与索引不会被 Git 追踪。
 路线绑定确切的 ROM 哈希，只有完整重放并匹配结局画面才报告 `CLEAR`；
 修改 ROM 后不能直接沿用旧路线的通关结论。
 游玩中发现的日文残留与编码问题见 [docs/未翻译与编码问题.md](docs/未翻译与编码问题.md)。
@@ -75,7 +78,7 @@ make help       # 全部目标
 python3 tools/merge_scene_edits.py      # 若在 data/scene_lines.tsv 上改过译文
 python3 tools/check_slots.py            # 打包前 1 秒预检：译文装不装得进原槽位
 python3 tools/scene_index.py build
-python3 tools/build_rom.py --out "侦探神宫寺三郎 - 白影的少女 (简中).gba"
+python3 tools/build_rom.py
 python3 tools/verify_rom.py "侦探神宫寺三郎 - 白影的少女 (简中).gba"
 python3 tools/save_check.py --selftest  # 存档格式 / 校验和
 ```
@@ -213,7 +216,7 @@ python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 | `make check-dyn` | 动态回归：冷启动复跑固定路线，比对不变量与证据哈希（见 `docs/动态测试.md`） |
 | `python3 tools/check_append_guard.py` | 追加条目的对齐与零 guard 检查（已并入 `make verify`） |
 | `python3 tools/crash_bisect.py --self-test` | 验证崩溃二分的逻辑；真出崩溃时传 `--state` 二分最小崩溃集 |
-| `python3 tools/export_scene_context.py --entries 1-20 --out work/scenes/e1_20.tsv` | 导出整场景复核对 |
+| `python3 tools/export_scene_context.py --entries 1-20` | 导出整场景复核对 |
 | `python3 tools/import_script.py --master ... --rom ... --out ...` | 回写生成中文 ROM |
 | `python3 tools/import_script.py ... --report-only` | 只报告不写盘（预检译文） |
 | `python3 tools/lz77.py selftest` | 压缩器自测 |

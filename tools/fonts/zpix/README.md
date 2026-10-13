@@ -22,8 +22,8 @@ USD 1000 / 单一商业产品）。本汉化是免费同人作品，属个人用
 ## 用法
 
 ```bash
-python3 tools/pixelfont.py --png sample.png --text "汉字测试"   # 预览
-python3 tools/font_compare.py --out cmp.png --text "一行中文"    # 与原方案对比
-python3 tools/build_rom.py --out out.gba                       # 打包时自动使用
+python3 tools/pixelfont.py --png --text "汉字测试"   # 预览
+python3 tools/font_compare.py --text "一行中文"    # 与原方案对比
+python3 tools/build_rom.py                       # 打包时自动使用
 python3 tools/build_rom.py --outline-font                      # 回退到轮廓字体
 ```

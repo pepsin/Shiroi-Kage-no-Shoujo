@@ -9,9 +9,11 @@ For every character it uses exactly the source the game uses:
     (outline font downscale vs. a pixel font such as zpix).
 
 Usage:
-  font_compare.py --out cmp.png [--text 你好] [--variant outline|pixel|both]
-  font_compare.py --out cmp.png --chars 汉字测试            # one cell per char
+  font_compare.py [--text 你好] [--variant outline|pixel|both]
+  font_compare.py --chars 汉字测试            # one cell per char
 """
+from work_paths import output_file
+
 import argparse
 import csv
 import os
@@ -115,7 +117,6 @@ def strip(text, variant, pixel, new_set, jp_slots, scale):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=os.path.join(ROOT, 'work', 'font_compare.png'))
     ap.add_argument('--text', action='append', default=None,
                     help='a line to render (repeatable)')
     ap.add_argument('--chars', default=None, help='render each character in its own cell')
@@ -126,6 +127,7 @@ def main():
                     help='render every character from this built ROM glyph table '
                          '(what the game actually draws)')
     a = ap.parse_args()
+    a.out = output_file('images/font-compare.png')
 
     pixel = pf.load(a.pixel_font)
     new_set = new_charset()

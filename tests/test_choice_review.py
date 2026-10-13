@@ -57,7 +57,15 @@ class ChoiceReviewTests(unittest.TestCase):
         self.assertEqual(classify(0, 318, [(20, 28, b'a'), (20, 45, b'b')]), 'inference')
         self.assertIsNone(classify(0, 299, [(20, 28, b'a'), (20, 45, b'b')]))
         self.assertIsNone(classify(4, 3, [(20, 114, b'prompt')]))
-        self.assertEqual(classify(4, 3, [(26, 130, b'yes')]), 'choice')
+        self.assertIsNone(classify(4, 3, [(26, 130, b'yes')]))
+
+    def test_non_inference_screens_never_enter_gallery(self):
+        for ui, entry in ((2, 318), (3, 318), (4, 318), (0, 282), (0, 417)):
+            with self.subTest(ui=ui, entry=entry):
+                self.review.resolve = lambda _, e=entry: e
+                self.review.consume(self.raw(f'ui-{ui}-e{entry}', 40, ui=ui), 1, 0)
+        self.assertEqual(self.review.data['screenshots'], [])
+        self.assertEqual(list(self.review.directory.glob('*.png')), [])
 
     def test_highlights_deduplicate_but_scrolled_pages_are_retained(self):
         self.review.consume(self.raw('one', 40), 1, 0)
@@ -67,7 +75,7 @@ class ChoiceReviewTests(unittest.TestCase):
         self.review.consume(self.raw('three', 70, pattern=0x10), 3, 200)
         self.assertEqual(len(self.review.data['screenshots']), 2)
         self.assertEqual(self.review.data['screenshots'][1]['occurrences'][0]['total_frame'], 270)
-        self.assertIn('推理选项', (self.root / 'choice-review/index.html').read_text())
+        self.assertIn('推理题', (self.root / 'choice-review/index.html').read_text())
 
     def test_repeated_text_in_different_script_is_kept(self):
         self.review.consume(self.raw('one', 40), 1, 0)

@@ -7,11 +7,12 @@ A second identical copy starts at file 0x800000 but is cut short by EOF at
 code 0x644, so 0x66F440 is the canonical source.
 
 Usage:
-  render_sheets.py <rom> <outdir> [--base 0x66F440] [--first 0x644] [--count 100] [--tag tail]
+  render_sheets.py <rom> [--base 0x66F440] [--first 0x644] [--count 100]
 
 Each sheet: 10x10 glyphs at 4x scale, 3-digit hex code under each glyph.
 """
-import os, argparse
+import argparse
+from work_paths import WORK, fixed_run
 from PIL import Image
 
 # tiny 3x5 digit/hex font
@@ -68,11 +69,9 @@ def draw_glyph(img, b, ox, oy):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('rom')
-    ap.add_argument('outdir')
     ap.add_argument('--base', default='0x800000')
     ap.add_argument('--first', default='0x000')
     ap.add_argument('--count', type=int, default=0, help='0 = to end of ROM')
-    ap.add_argument('--tag', default='')
     a = ap.parse_args()
     rom = open(a.rom, 'rb').read()
     base = int(a.base, 0)
@@ -80,22 +79,22 @@ def main():
     avail = (len(rom) - base) // 0x80
     ng = a.count if a.count else avail
     ng = min(ng, avail - first)
-    os.makedirs(a.outdir, exist_ok=True)
-    per = COLS * ROWS
-    nsheets = (ng + per - 1) // per
-    for s in range(nsheets):
-        img = Image.new('L', (COLS * CELL, ROWS * (CELL + LBL)), 40)
-        for k in range(per):
-            gid = first + s * per + k
-            if gid >= first + ng:
-                break
-            b = rom[base + gid * 0x80: base + gid * 0x80 + 0x80]
-            ox = (k % COLS) * CELL
-            oy = (k // COLS) * (CELL + LBL)
-            draw_glyph(img, b, ox, oy)
-            draw_label(img, ox + 8, oy + CELL + 2, f'{gid:03X}')
-        name = f'sheet_{a.tag}{s:02d}.png' if a.tag else f'sheet_{s:02d}.png'
-        img.save(os.path.join(a.outdir, name))
+    with fixed_run(WORK / 'glyph-sheets', inputs=(a.rom,)) as directory:
+        per = COLS * ROWS
+        nsheets = (ng + per - 1) // per
+        for s in range(nsheets):
+            img = Image.new('L', (COLS * CELL, ROWS * (CELL + LBL)), 40)
+            for k in range(per):
+                gid = first + s * per + k
+                if gid >= first + ng:
+                    break
+                b = rom[base + gid * 0x80: base + gid * 0x80 + 0x80]
+                ox = (k % COLS) * CELL
+                oy = (k // COLS) * (CELL + LBL)
+                draw_glyph(img, b, ox, oy)
+                draw_label(img, ox + 8, oy + CELL + 2, f'{gid:03X}')
+            name = f'sheet-{s+1:04d}.png'
+            img.save(str(directory / name))
     print(f'wrote {nsheets} sheets, {ng} glyphs (codes {first:#05x}..{first+ng-1:#05x}) from base {base:#x}')
 
 

@@ -14,9 +14,11 @@ candidate; obvious bitmap/table noise is dropped by a shape filter that mirrors
 drop_noise_rows.py.
 
 Usage:
-  find_missing_structured.py [--out work/missing_all.tsv] [--min-len 2]
+  find_missing_structured.py [--min-len 2]
                              [--show 40]
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -134,11 +136,11 @@ def pool_runs(d):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=os.path.join(ROOT, 'work', 'missing_all.tsv'))
     ap.add_argument('--rom', default=g.JP_ROM)
     ap.add_argument('--min-len', type=int, default=2)
     ap.add_argument('--show', type=int, default=30)
     a = ap.parse_args()
+    a.out = output_file('reports/missing-structured.tsv')
 
     rom = open(a.rom, 'rb').read()
     table = ex.load_table('jp')

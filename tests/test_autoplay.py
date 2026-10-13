@@ -11,10 +11,12 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import autoplay
+from choice_review import PPM_HEADER
 import export_autoplay
 import revalidate_autoplay
 import scene_lookup
 import tm
+import work_paths
 from harness_utils import expand_keys, HarnessError
 
 
@@ -26,13 +28,14 @@ class AutoplayTests(unittest.TestCase):
         self.rom = self.root / 'test.gba'
         self.rom.write_bytes(b'rom')
         self.evidence = {key: key.encode() for key in ('ewram', 'iwram', 'vram', 'ppm')}
+        self.evidence['ppm'] = PPM_HEADER + b'\0' * (240*160*3)
         self.segment = {'frames': 100, 'keys': ['A@5:4'],
                         'sha256': {k: autoplay.digest(v) for k, v in self.evidence.items()}}
         self.route = {'version': 1, 'status': 'complete',
                       'rom_sha256': autoplay.digest(b'rom'),
                       'segments': [copy.deepcopy(self.segment) for _ in range(2)],
                       'ending': {'description': 'synthetic ending',
-                                 'ppm_sha256': autoplay.digest(b'ppm')}}
+                                 'ppm_sha256': autoplay.digest(self.evidence['ppm'])}}
 
     def run_route(self, route=None, **kwargs):
         with contextlib.redirect_stdout(io.StringIO()):
@@ -101,7 +104,7 @@ class AutoplayTests(unittest.TestCase):
         self.rom.write_bytes(b'rom')
         with mock.patch.object(autoplay, 'run_harness', side_effect=self.fake_harness):
             self.run_route()
-        (self.root / 'out/segment-0002.ss1').write_bytes(b'tampered')
+        (self.root / 'out/checkpoints/segment-0002.ss1').write_bytes(b'tampered')
         with self.assertRaises(ValueError):
             self.run_route(resume=True)
         self.assertFalse((self.root / 'out/result.json').exists())
@@ -109,9 +112,51 @@ class AutoplayTests(unittest.TestCase):
     def test_resume_cannot_silently_enable_capture_and_skip_previous_choices(self):
         with mock.patch.object(autoplay, 'run_harness', side_effect=self.fake_harness):
             self.run_route()
-        with self.assertRaisesRegex(ValueError, '相同的选项截图设置'):
+        with self.assertRaisesRegex(ValueError, '相同的推理截图设置'):
             self.run_route(resume=True, capture_choices=True)
         self.assertFalse((self.root / 'out/result.json').exists())
+
+    def test_fixed_cli_can_rerun_and_resume_without_output_argument(self):
+        route = self.root / 'accepted.json'
+        route.write_text(json.dumps(self.route))
+        harness = self.root / 'harness'
+        harness.touch()
+        args = ['--route', str(route), '--rom', str(self.rom),
+                '--harness', str(harness), '--no-choice-capture']
+        out = self.root / 'work/autoplay'
+        with mock.patch.object(work_paths, 'WORK', self.root / 'work'), \
+                mock.patch.object(autoplay, 'AUTOPLAY', out), \
+                mock.patch.object(autoplay, 'run_harness', side_effect=self.fake_harness) as runner, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(autoplay.main(args), 0)
+            self.assertIsNone(runner.call_args_list[0].kwargs['state'])
+            runner.reset_mock()
+            self.assertEqual(autoplay.main(args + ['--resume']), 0)
+            runner.assert_not_called()
+            (out / 'obsolete.png').touch()
+            self.assertEqual(autoplay.main(args), 0)
+            self.assertFalse((out / 'obsolete.png').exists())
+            self.assertIsNone(runner.call_args_list[0].kwargs['state'])
+        self.assertTrue((out / 'ending.png').is_file())
+
+    def test_fixed_candidate_cli_never_overwrites_accepted_route(self):
+        accepted = self.root / 'accepted.json'
+        accepted.write_text(json.dumps(self.route))
+        original = accepted.read_bytes()
+        harness = self.root / 'harness'
+        harness.touch()
+        out = self.root / 'work/revalidate'
+        args = ['--route', str(accepted), '--rom', str(self.rom), '--harness', str(harness)]
+        with mock.patch.object(work_paths, 'WORK', self.root / 'work'), \
+                mock.patch.object(revalidate_autoplay, 'REVALIDATE', out), \
+                mock.patch.object(revalidate_autoplay, 'run_harness', side_effect=self.fake_harness), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(revalidate_autoplay.main(args), 0)
+            self.assertTrue((out / 'route.candidate.json').is_file())
+            self.evidence['ppm'] = b'wrong ending'
+            self.assertEqual(revalidate_autoplay.main(args), 1)
+            self.assertFalse((out / 'route.candidate.json').exists())
+        self.assertEqual(accepted.read_bytes(), original)
 
     def test_compaction_preserves_order_and_timing(self):
         events = [('A', 1, 4), ('A', 9, 4), ('A', 17, 4), ('B', 17, 2), ('A', 50, 4)]

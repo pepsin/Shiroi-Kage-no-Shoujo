@@ -18,10 +18,10 @@ Usage
   export_scene_context.py --scene 3.0
 
   # every story scene of a few entries -> work/scenes/e1.tsv
-  export_scene_context.py --entries 1,2,3 --out work/scenes/e0.tsv
+  export_scene_context.py --entries 1,2,3
 
   # only scenes whose Chinese looks inverted/calqued (see --flags)
-  export_scene_context.py --flagged --limit 40 --out work/scenes/flag1.tsv
+  export_scene_context.py --flagged --limit 40
 
 Output (TSV, one row per display line, blank line between scenes):
 
@@ -31,6 +31,8 @@ Output (TSV, one row per display line, blank line between scenes):
 continues from the previous one, ``<>`` for a middle line, ``-`` for a line
 that ends a sentence.  ``len`` is the row's own code budget.
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -125,10 +127,10 @@ def main():
                     help='scene kind filter (scene / system / quiz / chara / credits)')
     ap.add_argument('--flagged', action='store_true',
                     help='only scenes with a style/word-order flag')
-    ap.add_argument('--out', default='')
     ap.add_argument('--limit', type=int, default=0, help='max scenes')
     ap.add_argument('--min-rows', type=int, default=0)
     a = ap.parse_args()
+    a.out = output_file('reports/scene-context.tsv')
 
     scenes = load_scenes()
     by_scene, order = load_lines()

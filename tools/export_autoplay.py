@@ -10,6 +10,7 @@ from pathlib import Path
 
 from autoplay import atomic_json, digest, load_route
 from harness_utils import expand_keys
+from work_paths import WORK, fixed_run
 from state_inspect import read_state
 
 
@@ -80,8 +81,8 @@ def export(session, output, *, through=None, ending=None, segment_frames=12000):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('session', type=Path)
-    p.add_argument('output', type=Path)
     p.add_argument('--through', type=int)
     p.add_argument('--ending', help='仅在实际观察到结局后填写；导出后必须重新冷启动验证')
     args = p.parse_args()
-    export(args.session, args.output, through=args.through, ending=args.ending)
+    with fixed_run(WORK / 'route-export', inputs=(args.session,)) as directory:
+        export(args.session, directory / 'route.candidate.json', through=args.through, ending=args.ending)

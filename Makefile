@@ -76,7 +76,7 @@ verify:                                      ## 只校验现有 ROM（不重打�
 
 rom: slots index                             ## 合并→预检→索引→打包（build_rom 内含自检）
 	@echo "== [4/5] 打包 $(ROM)"
-	@$(PY) tools/build_rom.py --out "$(ROM)" --no-preflight || { \
+	@$(PY) tools/build_rom.py --no-preflight || { \
 		echo; \
 		echo "!! 打包失败：$(ROM) 不是完整版本（见上面的「打包中止」或 ✗ 清单）。"; \
 		echo "   出错即停：这一步之后的菜单 / 标题 / 字库 / 自检都没有跑。"; \
@@ -154,7 +154,7 @@ where:                                       ## 看存档演到哪一行：make 
 play:                                        ## 无头复跑并截图：make play STATE=x.ss1 KEYS="A@120:4"
 	@test -n "$(STATE)" || { echo '用法: make play STATE=x.ss1 KEYS="A@120:4"'; exit 2; }
 	@$(PY) tools/romdbg.py play --state "$(STATE)" --frames $(FRAMES) \
-		--keys "$(KEYS)" --shot-every 60 --out work/dbg/play
+		--keys "$(KEYS)" --shot-every 60
 
 # ---------------------------------------------------------------- 动态回归
 .PHONY: test test-unit check-dyn dyn-update dyn-list autoplay video
@@ -183,10 +183,13 @@ dyn-list:                                    ## 列出动态检查规格（tests
 	@$(PY) tools/dyn_check.py list
 
 # ---------------------------------------------------------------- 杂项
-.PHONY: backup clean distclean env help
-backup:                                      ## 备份现有 ROM 到 work/backup/
+.PHONY: outputs backup clean distclean env help
+outputs:                                     ## 生成固定输出导航 work/index.html
+	@$(PY) tools/work_paths.py
+
+backup:                                      ## 备份现有 ROM 到 work/backup/（更新同名备份）
 	@mkdir -p work/backup
-	@cp -p "$(ROM)" "work/backup/$$(date +%Y%m%d-%H%M%S)-$(ROM)"
+	@cp -p "$(ROM)" "work/backup/$(ROM)"
 	@ls -lt work/backup | head -4
 
 clean:                                       ## 清掉 work/（全部可再生，data/ 与 ROM 不动）

@@ -12,8 +12,10 @@ the ROM or the layout:
   * the text actually differs from what is in the table
 
 Usage:
-  validate_cn_patch.py patch.tsv [--table data/translation.tsv] [--out clean.tsv]
+  validate_cn_patch.py patch.tsv [--table data/translation.tsv]
 """
+from work_paths import output_file
+
 import argparse
 import csv
 import os
@@ -50,8 +52,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('patch')
     ap.add_argument('--table', default=os.path.join(ROOT, 'data', 'translation.tsv'))
-    ap.add_argument('--out')
     a = ap.parse_args()
+    a.out = output_file('reports/validated-patch.tsv')
 
     table = {}
     for r in csv.reader(open(a.table, encoding='utf-8', newline=''), delimiter='\t'):
@@ -86,7 +88,7 @@ def main():
     print(f'patch rows: {len(good) + len(rejected)}, accepted: {len(good)}, rejected: {len(rejected)}')
     for key, why, cn in rejected[:40]:
         print(f'  REJECT {key}: {why}  -> {cn}')
-    if a.out and good:
+    if a.out:
         with open(a.out, 'w', encoding='utf-8', newline='') as f:
             for e, i, cn in good:
                 f.write(f'{e}\t{i}\t{cn}\n')

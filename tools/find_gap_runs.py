@@ -23,8 +23,10 @@ before writing anything.
 
 Usage
 -----
-  python3 tools/find_gap_runs.py [--out work/missing_gap_runs.tsv] [--max-gap 64]
+  python3 tools/find_gap_runs.py [--max-gap 64]
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import csv
@@ -91,7 +93,6 @@ def run_at(d, dec, start):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=DEFAULT_OUT)
     ap.add_argument('--rom', default=g.JP_ROM)
     ap.add_argument('--max-gap', type=int, default=64)
     ap.add_argument('--keep-data', action='store_true',
@@ -99,6 +100,7 @@ def main():
                          'display the same in Chinese or are data tables, so '
                          'they are skipped by default')
     a = ap.parse_args()
+    a.out = output_file('reports/missing-gap-runs.tsv')
 
     dec = mapio.load_map(os.path.join(ROOT, 'data', 'glyph_map.csv'))
     rom = open(a.rom, 'rb').read()

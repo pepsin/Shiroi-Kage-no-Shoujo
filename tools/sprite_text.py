@@ -9,6 +9,8 @@ recover the code, then reports every visible sprite as (x, y, char).
 Usage:
   sprite_text.py <prefix> <frame> [--rom ROM] [--map MAP]
 """
+from work_paths import output_file
+
 import argparse
 import collections
 import os
@@ -39,10 +41,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('prefix')
     ap.add_argument('frame')
-    ap.add_argument('--rom', default=os.path.join(ROOT, 'out.gba'))
+    ap.add_argument('--rom', default=os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba'))
     ap.add_argument('--map', default=os.path.join(ROOT, 'work', 'glyph_map.ext.csv'))
-    ap.add_argument('--dump-glyphs', metavar='OUT.png')
+    ap.add_argument('--dump-glyphs', action='store_true', help='保存到 work/images/sprite-glyphs.png')
     a = ap.parse_args()
+    a.dump_glyphs = output_file('images/sprite-glyphs.png') if a.dump_glyphs else ''
 
     import csv
     import mapio

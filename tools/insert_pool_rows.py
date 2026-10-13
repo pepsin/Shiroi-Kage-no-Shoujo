@@ -58,7 +58,7 @@ import gbtext as g          # noqa: E402
 import mapio                # noqa: E402
 
 MASTER = os.path.join(ROOT, 'data', 'translation.tsv')
-CANDIDATES = os.path.join(ROOT, 'work', 'missing_gap_runs.tsv')
+CANDIDATES = os.path.join(ROOT, 'work', 'reports', 'missing-gap-runs.tsv')
 REMAP = os.path.join(ROOT, 'work', 'insert_remap.tsv')
 CATALOG = os.path.join(ROOT, 'data', 'entry_catalog.tsv')
 WORK_GLOBS = ['work/scenes/patch*.tsv', 'work/tm/w*/*.tsv', 'work/batches/*.tsv']

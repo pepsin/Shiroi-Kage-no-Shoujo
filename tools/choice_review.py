@@ -1,4 +1,4 @@
-"""Read-only choice screenshots and an offline review gallery (stdlib only).
+"""Read-only inference screenshots and an offline review gallery (stdlib only).
 
 The harness captures the rendered frame immediately before each input and at
 segment boundaries. Classification uses the game's UI mode, script identity,
@@ -16,8 +16,7 @@ import entry_id
 from game_observe import monochrome
 from harness_utils import HarnessError
 
-KINDS = {'choice': '对话选项', 'inference': '推理选项', 'command': '行动菜单',
-         'inventory': '物品选择', 'map': '地图选择'}
+KINDS = {'inference': '推理题'}
 PPM_HEADER = b'P6\n240 160\n255\n'
 
 
@@ -60,17 +59,9 @@ def glyph_sprites(vram, oam):
 
 def classify(ui, entry, sprites):
     ys = {y for _, y, _ in sprites}
-    if ui == 4 and any(y >= 130 for y in ys):
-        return 'choice'
-    if ui == 2:
-        return 'command'
-    if ui == 3 and 46 in ys:
-        return 'inventory'
-    if ui == 0 and entry is not None:
-        if 316 <= entry <= 416 and len({y for y in ys if 20 <= y < 98}) >= 2:
-            return 'inference'
-        if 282 <= entry <= 296:
-            return 'map'
+    if (ui == 0 and entry is not None and 316 <= entry <= 416
+            and len({y for y in ys if 20 <= y < 98}) >= 2):
+        return 'inference'
     return None
 
 
@@ -81,20 +72,20 @@ class ChoiceReview:
         self.path = self.directory / 'index.json'
         self.index = entry_id.RomIndex(rom)
         self.entry_cache = {}
-        self.identity = {'version': 1, 'rom_sha256': sha(rom), 'route_sha256': route_hash}
+        self.identity = {'version': 2, 'rom_sha256': sha(rom), 'route_sha256': route_hash}
         if resume and completed:
             self.data = json.loads(self.path.read_text())
             if any(self.data.get(k) != v for k, v in self.identity.items()):
-                raise ValueError('选项截图索引与当前 ROM／路线不一致')
+                raise ValueError('推理截图索引与当前 ROM／路线不一致')
             if self.data['completed_segments'] < completed:
-                raise ValueError('选项截图缺少已完成分段；请从新目录冷启动')
+                raise ValueError('推理截图缺少已完成分段；请重新运行 make autoplay')
             # A crash can happen after gallery publication but before progress.json.
             # Roll only this run's uncommitted gallery records back before replay.
             kept = []
             for item in self.data['screenshots']:
                 name = item['file']
                 if Path(name).name != name or not name.endswith('.png'):
-                    raise ValueError('选项截图索引中的文件名无效')
+                    raise ValueError('推理截图索引中的文件名无效')
                 item['occurrences'] = [o for o in item['occurrences'] if o['segment'] <= completed]
                 if not item['occurrences']:
                     (self.directory / name).unlink(missing_ok=True)
@@ -105,7 +96,7 @@ class ChoiceReview:
             self.data['screenshots'] = kept
         else:
             if self.path.exists():
-                raise ValueError('选项截图目录已有索引；请使用 --resume 或新输出目录')
+                raise ValueError('推理截图目录已有索引；请使用 --resume 或重新运行 make autoplay')
             self.data = {**self.identity, 'screenshots': []}
         self.by_signature = {x['signature']: x for x in self.data['screenshots']}
         self.publish(completed)
@@ -129,9 +120,11 @@ class ChoiceReview:
             frame = int(snapshot.stem.split('-')[1])
             data = snapshot.read_bytes()
             if len(data) != 0x60400:
-                raise HarnessError('选项快照长度错误')
+                raise HarnessError('推理快照长度错误')
             ewram, vram, oam = data[:0x40000], data[0x48000:0x60000], data[0x60000:]
             ui = struct.unpack_from('<I', ewram, 0x15160)[0]
+            if ui != 0:
+                continue
             entry = self.resolve(ewram)
             sprites = glyph_sprites(vram, oam)
             kind = classify(ui, entry, sprites)
@@ -140,8 +133,7 @@ class ChoiceReview:
             ppm = snapshot.with_suffix('.ppm').read_bytes()
             # Text choices deduplicate highlight changes, while keeping every
             # newly scrolled page and each separate script instance.
-            visual = (b''.join(struct.pack('<2H', x, y) + mask for x, y, mask in sprites)
-                      if kind in ('choice', 'inference') else ppm)
+            visual = b''.join(struct.pack('<2H', x, y) + mask for x, y, mask in sprites)
             signature = sha(f'{kind}:{entry}:'.encode() + visual)
             occurrence = {'segment': segment, 'frame': frame,
                           'total_frame': preceding_frames + frame}
@@ -172,19 +164,15 @@ class ChoiceReview:
             cards.append(f'<figure data-kind="{item["kind"]}"><a href="{name}"><img loading="lazy" '
                          f'src="{name}" alt="{html.escape(label)}"></a><figcaption>{label}<br>'
                          f'<small>{details}</small></figcaption></figure>')
-        filters = ''.join(f'<option value="{key}">{label}</option>' for key, label in KINDS.items())
-        page = ('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>选项画面审核</title>'
+        page = ('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>推理题审核</title>'
                 '<style>body{font:16px system-ui;background:#17191e;color:#eee;margin:24px}'
                 'main{display:flex;flex-wrap:wrap;gap:18px}figure{margin:0;padding:12px;background:#252832}'
                 'img{width:480px;max-width:100%;image-rendering:pixelated}small{color:#bbc1cd}'
-                'figcaption{margin-top:8px}select{font:inherit;margin:12px 0 24px}</style>'
-                f'<h1>选项画面审核 · {len(cards)} 张</h1><p>状态：{status}；完成 {completed} 段。'
-                '仅包含本路线实际遇到的画面；推理列表保留滚动后新显示的页。'
+                'figcaption{margin-top:8px}</style>'
+                f'<h1>推理题审核 · {len(cards)} 张</h1><p>状态：{status}；完成 {completed} 段。'
+                '仅包含本路线实际遇到的推理题画面；推理列表保留滚动后新显示的页。'
                 '同一脚本内只改变高亮的文字选项会合并，完整出现位置见 index.json。</p>'
-                f'<select aria-label="画面类型"><option value="">全部</option>{filters}</select>'
-                '<main>' + ''.join(cards) + '</main><script>document.querySelector("select").onchange=e=>'
-                'document.querySelectorAll("figure").forEach(x=>x.hidden=!!e.target.value&&'
-                'x.dataset.kind!==e.target.value)</script></html>')
+                '<main>' + ''.join(cards) + '</main></html>')
         temporary = self.directory / 'index.html.tmp'
         temporary.write_text(page)
         temporary.replace(self.directory / 'index.html')

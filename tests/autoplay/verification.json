@@ -8,52 +8,35 @@
     "description": "完成主线结局与制作人员名单后，显示通关密码 NSYS。",
     "ppm_sha256": "d9e47962125666033dd2dfa0da2bcd174b172cda3e50fcf7367824f981796504"
   },
-  "verified_at_utc": "2026-10-13T07:04:13.409918+00:00",
-  "command": "make autoplay AUTOPLAY_ARGS='--route work/main-merge-20261013/route.candidate.json --out work/main-merge-20261013/strict-replay-final'",
+  "verified_at_utc": "2026-10-13T07:27:46.648667+00:00",
+  "command": "make autoplay",
   "cold_start": true,
   "mgba_version": "0.10.5",
   "harness_source_sha256": "407b7f91e0e12ea41c79dde7f5b9fc7144720304dbc50cfe48b43412b79bfc35",
   "translation_sha256": "ead584ccfa6d2ed805884cb9daf6e0d3093cdbd9fddc8950c378ac9ef498371c",
   "location_assets_sha256": "ab42d570933f573b8de979db3ffc2b438e1e3e15859b933a7c9b7c93d9ae0407",
-  "unit_tests": 70,
+  "unit_tests": 79,
   "strict_dynamic_checks": 5,
   "choice_review": {
     "enabled": true,
-    "screenshots": 1755,
+    "screenshots": 672,
     "counts": {
-      "inference": 672,
-      "choice": 334,
-      "command": 641,
-      "map": 93,
-      "inventory": 15
+      "inference": 672
     },
-    "observer_source_sha256": "26a5b3b97696864f748b32a4da75df6142d095ed5e93df646927f696e25b88be",
+    "observer_source_sha256": "1ed35615136b6fc74c614352047c02681e711430f8d5fc2d52340cfe85d3d9fd",
     "walkthrough_entry_coverage": {
-      "choice": {
-        "expected_entries": 146,
-        "captured_entries": 148,
-        "missing_entries": []
-      },
-      "command": {
-        "expected_entries": 114,
-        "captured_entries": 115,
-        "missing_entries": []
-      },
-      "inventory": {
-        "expected_entries": 5,
-        "captured_entries": 5,
-        "missing_entries": []
-      },
       "inference": {
         "expected_entries": 98,
         "captured_entries": 99,
         "missing_entries": []
-      },
-      "map": {
-        "expected_entries": 10,
-        "captured_entries": 10,
-        "missing_entries": []
       }
     }
+  },
+  "runner_source_sha256": "e79934d96e5d9ac179ee3bf17c676fa035f33e5fb11b50690a9be87f34ef3663",
+  "output_layout": {
+    "root": "work/index.html",
+    "autoplay": "work/autoplay/",
+    "inference_review": "work/autoplay/inference-review/index.html",
+    "custom_output_directory": false
   }
 }

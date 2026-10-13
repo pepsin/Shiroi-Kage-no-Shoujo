@@ -28,7 +28,7 @@
   tools/romdbg.py find  --text 病死的               # 反查某句话在哪个条目/第几行
   tools/romdbg.py where --state work/dbg/base.ss1   # 报告存档里的条目 / 场景 / 行
   tools/romdbg.py base                              # 生成/刷新基准存档（冷启动到第一段对白）
-  tools/romdbg.py shot  a.ppm b.png                 # PPM → PNG（放大可选）
+  tools/romdbg.py shot  a.ppm                 # PPM → PNG（放大可选）
   tools/romdbg.py raw ...                           # 直接透传给 gbarun_dbg
 
 > 为什么**没有**「跳到任意一行」的功能：唯一的实现方式是「文本级注入」——把目标行
@@ -44,6 +44,7 @@ import os
 import struct
 import subprocess
 import sys
+from work_paths import DEBUG_PLAY, fixed_run, output_file
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
@@ -186,7 +187,8 @@ def run_harness(args, env_extra=None, capture=True):
             f'缺少 {HARNESS}，先编译：\n'
             '  clang -O2 -o work/bin/gbarun_dbg legacy/gbarun_dbg.c \\\n'
             '        -I/opt/homebrew/include -L/opt/homebrew/lib -lmgba -lm -lpthread')
-    env = dict(os.environ)
+    env = {k: v for k, v in os.environ.items() if not k.startswith('GBARUN_')}
+    env['GBARUN_NO_AUTOSAVE'] = '1'
     if env_extra:
         env.update({k: str(v) for k, v in env_extra.items() if v is not None})
     cmd = [HARNESS] + [str(a) for a in args]
@@ -344,6 +346,7 @@ def cmd_shot(a):
     im = Image.open(a.src).convert('RGB')
     if a.scale != 1:
         im = im.resize((im.width * a.scale, im.height * a.scale), Image.NEAREST)
+    a.dst = output_file('images/debug-shot.png')
     im.save(a.dst)
     print(f'{a.dst} {im.size}')
     return 0
@@ -351,16 +354,18 @@ def cmd_shot(a):
 
 def cmd_play(a):
     keys = a.keys.split() if isinstance(a.keys, str) else list(a.keys)
-    args = [CN_ROM, a.frames, a.out + '.ppm'] + keys
-    env = {'GBARUN_SHOT_EVERY': a.shot_every}
-    if a.state:
-        env['GBARUN_STATE'] = a.state
-    if a.save:
-        env['GBARUN_SAVE'] = a.save
-    rc, out = run_harness(args, env)
-    shots = sorted(glob.glob(a.out + '.ppm_shot*.ppm'))
-    print(f'# 末帧 {a.out}_final.ppm，过程截图 {len(shots)} 张（{a.out}.ppm_shot*.ppm）')
-    return 0
+    with fixed_run(DEBUG_PLAY, inputs=(a.state, CN_ROM, HARNESS)):
+        prefix = str(DEBUG_PLAY / 'play')
+        args = [CN_ROM, a.frames, prefix + '.ppm'] + keys
+        env = {'GBARUN_SHOT_EVERY': a.shot_every,
+               'GBARUN_SAVE': str(DEBUG_PLAY / 'play.ss1')}
+        if a.state:
+            env['GBARUN_STATE'] = a.state
+        rc, out = run_harness(args, env)
+        shots = sorted(glob.glob(prefix + '.ppm_shot*.ppm'))
+        print(f'# 末帧 {prefix}.ppm_final.ppm，过程截图 {len(shots)} 张；存档 {DEBUG_PLAY / "play.ss1"}')
+        return rc
+
 
 
 def cmd_raw(a):
@@ -412,7 +417,6 @@ def build_parser():
 
     s = sub.add_parser('shot', help='PPM → PNG')
     s.add_argument('src')
-    s.add_argument('dst')
     s.add_argument('--scale', type=int, default=1)
     s.set_defaults(func=cmd_shot)
 
@@ -421,8 +425,6 @@ def build_parser():
     pl.add_argument('--frames', type=int, default=1200)
     pl.add_argument('--keys', default='', help='如 "A@60:4 A@120:4"')
     pl.add_argument('--shot-every', type=int, default=60)
-    pl.add_argument('--out', default=os.path.join(DBGDIR, 'play'))
-    pl.add_argument('--save', default='')
     pl.set_defaults(func=cmd_play)
 
     r = sub.add_parser('raw', help='直接调用 gbarun_dbg')

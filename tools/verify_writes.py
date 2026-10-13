@@ -89,7 +89,7 @@ def load_rows(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--cn', default=os.path.join(ROOT, 'out.gba'))
+    ap.add_argument('--cn', default=os.path.join(ROOT, '侦探神宫寺三郎 - 白影的少女 (简中).gba'))
     ap.add_argument('--jp', default=g.JP_ROM)
     ap.add_argument('--master', default=os.path.join(ROOT, 'data', 'translation.tsv'))
     ap.add_argument('--max', type=int, default=40)

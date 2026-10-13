@@ -21,8 +21,8 @@ release use identical text codes; they differ only in glyph bitmaps.
 
 Usage
 -----
-  export_script.py scan    [--rom ROM] [--out DIR]
-  export_script.py extract [--rom ROM] [--out DIR] [--rom-kind cn|jp]
+  export_script.py scan    [--rom ROM]
+  export_script.py extract [--rom ROM] [--rom-kind cn|jp]
 """
 import argparse
 import csv
@@ -231,7 +231,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('cmd', choices=['scan', 'extract'])
     ap.add_argument('--rom', default=g.JP_ROM)
-    ap.add_argument('--out', default='')
     a = ap.parse_args()
     if a.cmd == 'scan':
         cmd_scan(a)

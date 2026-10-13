@@ -163,7 +163,6 @@ def main():
     ap.add_argument('cmd', choices=['detect', 'decode', 'stats'])
     ap.add_argument('rom')
     ap.add_argument('eids', nargs='*')
-    ap.add_argument('--out', default='')
     ap.add_argument('--min-str', type=int, default=5)
     a = ap.parse_args()
     rom = open(a.rom, 'rb').read()
@@ -172,7 +171,7 @@ def main():
     table = build_decoder(kind, gmap)
     print(f'# ROM: {os.path.basename(a.rom)}  kind={kind}  shift={SHIFT[kind]:+d}', file=sys.stderr)
     if a.cmd == 'decode':
-        outdir = a.out or os.path.join(ROOT, 'work', 'dumps', f'script_text_{kind}')
+        outdir = os.path.join(ROOT, 'work', 'dumps', f'script_text_{kind}')
         os.makedirs(outdir, exist_ok=True)
         for eid in a.eids:
             eid = int(eid)

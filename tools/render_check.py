@@ -4,12 +4,14 @@
 Produces a single PNG (default 8 columns) where each cell shows:
     <code label>   [glyph bitmap 16x16 at 5x]   U+XXXX
 
-Usage: render_check.py <rom> <out.png> <code>[,<code>...] [--base 0x66F440] [--cols 8]
+Usage: render_check.py <rom> <code>[,<code>...] [--base 0x66F440] [--cols 8]
 
 Codes may be given as ranges with '-' (e.g. 0x64-0x74).  The unicode label is
 the codepoint of the character the code is *supposed* to stand for according to
 the disputed map; the reviewer compares the bitmap against it.
 """
+from work_paths import output_file
+
 import argparse
 from PIL import Image, ImageDraw
 
@@ -59,12 +61,12 @@ def draw_glyph(img, b, ox, oy):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('rom')
-    ap.add_argument('out')
     ap.add_argument('codes')
     ap.add_argument('--base', default='0x66F440')
     ap.add_argument('--cols', type=int, default=8)
     ap.add_argument('--mapfile', default='data/glyph_map.csv')
     a = ap.parse_args()
+    a.out = output_file('images/render-check.png')
     rom = open(a.rom, 'rb').read()
     base = int(a.base, 0)
     gmap = {}
