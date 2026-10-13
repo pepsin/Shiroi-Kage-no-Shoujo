@@ -33,7 +33,7 @@
     }
    },
    "rom_hash": {
-    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
+    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
    }
   },
   "cn-funeral-to-reception": {
@@ -69,7 +69,7 @@
     }
    },
    "rom_hash": {
-    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
+    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
    }
   },
   "cn-mash-a-advances": {
@@ -105,14 +105,14 @@
     }
    },
    "rom_hash": {
-    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
+    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
    }
   },
   "cn-study-search-complete": {
    "check_hash": "f50d5e4d1991d45400ee921863958ff2fe1cdbf9fab4770fac62439b3ce9f1cd",
    "hashes": {
     "cn": {
-     "ewram": "b2e28d3f7e2a472f99706a977fa953b3240a7de865927b38f52cb428c373e76f",
+     "ewram": "dbb0deb0e9ad5ce2fcc7adcc7e43f41df7d81ed65a600d62f3aff1ca863d0b17",
      "iwram": "639d8d6994a1d0d14e7309ffe0b86bb55b0ac4d635298cec93e1c4cb19e2aa2e",
      "samples": "94a4da93836cdf7b36570c34160ba8e32dada391c19e57966d8f4b720e8bac69",
      "shot": "d442015e1c5aaf9220d01097fa91485655f9be7a71b8791ca82c89bc053ec222",
@@ -141,7 +141,7 @@
     }
    },
    "rom_hash": {
-    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9"
+    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
    }
   },
   "jp-cn-same-route-funeral": {
@@ -202,13 +202,13 @@
     }
    },
    "rom_hash": {
-    "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9",
+    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7",
     "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
    }
   }
  },
  "rom_hash": {
-  "cn": "7e863979a30bd51e2f48062757c4a8d0af1746acc093161170355c06b270a8f9",
+  "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7",
   "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
  },
  "version": 1
