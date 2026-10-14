@@ -12,7 +12,8 @@
 - 本仓库的**工具链代码与原创文档**以 [MIT License](LICENSE) 发布。
 - 《侦探神宫寺三郎 — 白影的少女》游戏本体（包括但不限于剧本原文、程序、美术、音乐）的著作权归原权利方所有。本仓库**不包含、不分发**原版 ROM、GBA BIOS 及任何取自原作的版权数据；生成的中文 ROM 属于构建产物，同样不分发。使用本工具链需**自行合法持有**日文原版 ROM（校验信息见下文「准备工作」）。
 - 中文译文是基于原作剧本的衍生翻译，原文部分的著作权归原权利方所有；译文仅供学习交流，**不得用于任何商业用途**。
-- 中文字库使用点阵字体 **Zpix（最像素）**，著作权归作者 SolidZORO 所有（[项目地址](https://github.com/SolidZORO/zpix-pixel-font)）。该字体对个人项目免费，商业使用需另行取得作者授权。
+- 正文中文字库使用点阵字体 **Zpix（最像素）**，著作权归作者 SolidZORO 所有（[项目地址](https://github.com/SolidZORO/zpix-pixel-font)）。该字体对个人项目免费，商业使用需另行取得作者授权。
+- 地点标签、状态栏「助手」和标题菜单使用 **Fusion Pixel Font（缝合像素字体）**，作者为 TakWolf（[项目地址](https://github.com/TakWolf/fusion-pixel-font)），采用 **SIL Open Font License 1.1**。随仓库提供的字体及授权原文位于 [`tools/fonts/fusion-pixel/`](tools/fonts/fusion-pixel/) 与 [`OFL.txt`](tools/fonts/fusion-pixel/OFL.txt)，字体不适用本项目工具链的 MIT License。
 - 若任何权利方认为本项目侵犯其合法权益，请通过 issue 联系，本人将及时移除相关内容。
 
 ## 准备工作
@@ -105,7 +106,7 @@ python3 tools/save_check.py --selftest  # 存档格式 / 校验和
 
 当前状态：**101,795 行已译**（`verify_rom.py` 全量往返一致），
 并按剧情把全表切成 **795 个场景**（`data/scenes.tsv`，见 `docs/翻译作业流程.md` 第六节），
-标题画面与日文原版**逐像素一致**。
+三个标题菜单牌使用 Fusion Pixel 中文重绘。
 
 > 译文与流程详见 `docs/翻译作业流程.md`；打包细节（扩表 / 编码约定 / 验证）
 > 详见 `docs/打包流程.md`。
@@ -187,15 +188,41 @@ python3 tools/save_check.py --selftest  # 存档格式 / 校验和
 ROM 尾部原有 198 KB 空区装不下 ~410 KB 的新表，因此扩了文件；
 GBA 头部没有 ROM 尺寸字段，扩文件是安全的。
 
-字库改用点阵字体 **Zpix（最像素）**，11×11 位图直取，不再缩放轮廓字体
+正文新字形使用点阵字体 **Zpix（最像素）**，11×11 位图直取，不再缩放轮廓字体
 （轮廓字体缩到 11×11 会断笔画、粗细不匀）。
 
-新字形用系统字体渲染成游戏原生格式：
+新字形转换为游戏原生格式：
 
 ```bash
 python3 tools/font_patch.py render 汉 /tmp/han.png    # 预览渲染效果
 python3 tools/font_patch.py capacity <charset.txt>    # 检查缺字
 ```
+
+### 界面像素字体
+
+界面中的地点标签、状态栏「助手」和标题菜单是预绘制的图块，单独使用
+Fusion Pixel 的简体中文等宽版本；正文仍沿用 Zpix。这里的字号均指 **px（像素）**，
+按字体设计尺寸直接栅格化，不缩放字形。
+
+| 用途 | 随仓库提供的字体文件 | 尺寸 | 生成入口 |
+| --- | --- | --- | --- |
+| 上方地点栏、地图地点牌 | `tools/fonts/fusion-pixel/fusion-pixel-10px-monospaced-zh_hans.ttf` | 10px | `tools/gen_location_labels.py` |
+| 状态栏「助手」 | 同上 | 10px | `tools/patch_status_bar.py` |
+| 标题菜单「开始游戏／继续游戏／输入密码」 | `tools/fonts/fusion-pixel/fusion-pixel-12px-monospaced-zh_hans.ttf` | 12px | `tools/patch_menu_plates.py` |
+
+标题菜单在文字框居中后**下移 1 像素**（`DY_EXTRA = 1`），为顶部笔画留出空间，
+避免第一行被裁切。地点栏与「助手」的字形从图块第 2 行（从 0 计）开始绘制，
+并保留原界面的背景和调色板效果。
+
+58 个地点标签（52 个状态栏标签、6 个地图地点牌）的生成像素保存在
+`data/location_labels.json`。普通构建直接读取该文件；修改地点文字或字体后，先重新生成：
+
+```bash
+python3 tools/gen_location_labels.py          # 更新地点标签像素与哈希
+make rom                                     # 将地点标签、助手和标题菜单打包进 ROM
+```
+
+重绘依赖 Pillow 和随仓库提供的 TTF；游戏运行时读取生成的 4bpp 图块，不加载 TTF。
 
 ---
 

@@ -21,9 +21,9 @@ Tiles are 4bpp with the bar's runtime palette (bank 13):
 
 So the katakana are erased back to their row's background index and 助手 is
 drawn with the same ink plus a 1px AA on the right/bottom edges, like the other
-plate tools.  The glyphs are zpix's 11x11 squeezed to 9x9 - the size the game
-itself uses for bar text (the room name's ink band is rows 2..10 of the 16px
-bar), which keeps 助手 in step with the neighbouring text.
+plate tools.  The glyphs are fusion-pixel 10px (a pure bitmap face: ink lands
+in rows 2..10 of the 16px bar, one pixel taller than the old 9px STHeiti band,
+still inside the katakana plate's rows 2..10 ink + row 11 AA footprint).
 
 Usage:
   patch_status_bar.py <rom> --preview before.png after.png
@@ -51,9 +51,10 @@ BG_RGB = {12: (255, 247, 231), 13: (255, 255, 239)}
 BG_PATTERN = {2: 12, 5: 12}  # within each 8-row tile, these rows use index 12
 
 LABEL = '助手'
-# the same face the other plate tools draw with
-FONT_PATH = '/System/Library/Fonts/STHeiti Medium.ttc'
-FONT_PX = 9                  # -> 8px ink, the band the katakana plate used
+# bundled pixel font (OFL), rendered at its design size = exact dot matrix
+FONT_PATH = os.path.join(
+    ROOT, 'tools/fonts/fusion-pixel/fusion-pixel-10px-monospaced-zh_hans.ttf')
+FONT_PX = 10                 # -> 9px ink band, rows 2..10 of the plate
 
 
 def bg_index(y):
@@ -94,10 +95,11 @@ def write_plate(rom, plate):
 def label_mask():
     """Ink plus its 1px right/bottom AA, in plate coordinates.
 
-    The glyphs come from STHeiti at 9px (the same font the other plate tools
-    draw with) thresholded to 1-bit: that gives an 8px-tall ink band, exactly
-    what the katakana plate used, so the label keeps the bar's rhythm.  zpix is
-    11x11 and squeezing it to 8-9px merges 助's strokes.
+    The glyphs come from the bundled fusion-pixel face at its 10px design
+    size (thresholded to 1-bit, though the face is already pure 0/255):
+    that gives a 9px-tall ink band starting at plate row 2 - one row taller
+    than the old 9px render and still inside the katakana plate's ink+AA
+    footprint (rows 2..11).
     """
     font = ImageFont.truetype(FONT_PATH, FONT_PX)
     img = Image.new('L', (4 * FONT_PX, 2 * FONT_PX), 0)

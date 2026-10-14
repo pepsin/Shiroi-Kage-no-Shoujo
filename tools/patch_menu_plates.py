@@ -41,13 +41,16 @@ PLATES = [
 TEXT_BOX = (3, 68, 2, 13)          # x0, x1, y0, y1 - the drawable fill area
 CORE, AA, FILL = 9, 12, 15
 
+# bundled pixel face (OFL); at its 12px design size the glyphs are an exact
+# dot matrix, so the two thresholds below simply split ink from nothing
 FONTS = [
-    '/System/Library/Fonts/STHeiti Medium.ttc',
-    '/System/Library/Fonts/Hiragino Sans GB.ttc',
-    '/System/Library/Fonts/Supplemental/Songti.ttc',
-    '/System/Library/Fonts/PingFang.ttc',
+    os.path.join(ROOT,
+                 'tools/fonts/fusion-pixel/fusion-pixel-12px-monospaced-zh_hans.ttf'),
 ]
-SIZES = [13, 12, 14, 11]
+SIZES = [12]
+# nudge the text down inside the box: keeps the first stroke row clear of the
+# top edge even if a glyph's ascent ever pokes above the drawing origin
+DY_EXTRA = 1
 
 
 def decode(strip):
@@ -112,7 +115,7 @@ def render(img, text, font):
     bb = d.textbbox((0, 0), text, font=font)
     tw, th = bb[2] - bb[0], bb[3] - bb[1]
     dx = x0 + ((x1 - x0 + 1) - tw) // 2 - bb[0]
-    dy = y0 + ((y1 - y0 + 1) - th) // 2 - bb[1]
+    dy = y0 + ((y1 - y0 + 1) - th) // 2 - bb[1] + DY_EXTRA
     d.text((dx, dy), text, font=font, fill=255)
     px = tmp.load()
     for y in range(y0, y1 + 1):

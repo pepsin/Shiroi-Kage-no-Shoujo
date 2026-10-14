@@ -1,79 +1,90 @@
 {
   "status": "CLEAR",
-  "route_sha256": "639cb7889e7d6cc31a71bab771b1486b011dd0b69391896e894cd3c5fec1c680",
-  "rom_sha256": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7",
+  "route_sha256": "3e2c4fc286b62e91c5afb2ff57a67d6d987c3d4a43aa6f676a7be6f4dc9830c2",
+  "rom_sha256": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb",
   "segments": 124,
   "frames": 1489738,
   "ending": {
     "description": "完成主线结局与制作人员名单后，显示通关密码 NSYS。",
     "ppm_sha256": "d9e47962125666033dd2dfa0da2bcd174b172cda3e50fcf7367824f981796504"
   },
-  "verified_at_utc": "2026-10-13T09:29:40.551286+00:00",
+  "verified_at_utc": "2026-10-14T03:59:09.640719+00:00",
   "command": "make autoplay AUTOPLAY_ARGS='--route work/revalidate/route.candidate.json'",
   "cold_start": true,
+  "independent_cold_runs": 2,
   "mgba_version": "0.10.5",
   "harness_source_sha256": "407b7f91e0e12ea41c79dde7f5b9fc7144720304dbc50cfe48b43412b79bfc35",
-  "translation_sha256": "5136a89613a6a1ab0b48e97996fb536257cc4aaf798013f5da7fd8cd516054bc",
-  "location_assets_sha256": "ab42d570933f573b8de979db3ffc2b438e1e3e15859b933a7c9b7c93d9ae0407",
+  "runner_source_sha256": "e79934d96e5d9ac179ee3bf17c676fa035f33e5fb11b50690a9be87f34ef3663",
+  "harness_binary_sha256": "27d6ecfcc422ffc0959e2dbe801c90e2cd0545249dd51934b32b55cd420c87b2",
+  "translation_sha256": "2012a7646e5c0067a1b185d32ad8ab67b89dd3db6d42192a8a9644664de1c549",
+  "scene_lines_sha256": "0a00f9cfcc5bac346beedafa4e24f8e9bdf5aed64fab68fa21e766b0c9369756",
+  "location_assets_sha256": "63206339dbac6e1fb8674968531ffa83e197128eacc0a8db57af1bf6d11496ff",
   "unit_tests": 79,
   "strict_dynamic_checks": 5,
+  "static_checks": {
+    "translated_strings": 102280,
+    "text_mismatches": 0,
+    "missing_glyphs": 0,
+    "location_labels": 58,
+    "title_menu_labels_without_clipping": 3,
+    "scene_index_complete": true,
+    "cartridge_save_readable": true
+  },
+  "route_comparison": {
+    "segments": 124,
+    "position_differences": 0,
+    "controller_inputs_and_frames_unchanged": true
+  },
   "choice_review": {
     "enabled": true,
-    "screenshots": 674,
+    "screenshots": 673,
     "counts": {
-      "inference": 674
+      "inference": 673
     },
     "observer_source_sha256": "1ed35615136b6fc74c614352047c02681e711430f8d5fc2d52340cfe85d3d9fd",
     "walkthrough_entry_coverage": {
       "inference": {
-        "expected_entries": 98,
+        "expected_entries": 99,
         "captured_entries": 99,
         "missing_entries": []
       }
+    },
+    "previous_route_entry_coverage": {
+      "expected_entries": 99,
+      "captured_entries": 99,
+      "missing_entries": []
     }
   },
-  "runner_source_sha256": "e79934d96e5d9ac179ee3bf17c676fa035f33e5fb11b50690a9be87f34ef3663",
+  "translation_revision": {
+    "changed_rows": 4,
+    "rows": [
+      "61:549",
+      "297:91",
+      "436:7",
+      "502:181"
+    ],
+    "entries": [
+      61,
+      297,
+      436,
+      502
+    ],
+    "base_commit": "558946ddb623f647fd087a39a8c2834d70f46999",
+    "input_timing_adjustments": []
+  },
+  "font_revision": {
+    "status_and_map_font_px": 10,
+    "title_menu_font_px": 12,
+    "title_menu_y_offset_px": 1,
+    "files": {
+      "tools/fonts/fusion-pixel/fusion-pixel-10px-monospaced-zh_hans.ttf": "0606fac52ffd410d6291151e26816606469fd8ea121e2bf1d8b8788635fb934e",
+      "tools/fonts/fusion-pixel/fusion-pixel-12px-monospaced-zh_hans.ttf": "339f3c71531a6b3caae1023c68873eea45554e87571e8fac5c8954abe27fbff1"
+    }
+  },
   "output_layout": {
     "root": "work/index.html",
     "autoplay": "work/autoplay/",
     "inference_review": "work/autoplay/inference-review/index.html",
     "custom_output_directory": false
-  },
-  "translation_revision": {
-    "changed_rows": 7,
-    "rows": [
-      "406:28",
-      "409:30",
-      "409:31",
-      "409:32",
-      "409:33",
-      "412:0",
-      "413:32"
-    ],
-    "entries": [
-      406,
-      409,
-      412,
-      413
-    ],
-    "base_commit": "2ff173df4abfe6c9975ce843abeb3658211de182",
-    "input_timing_adjustments": [
-      {
-        "segment": 88,
-        "added": [
-          "A@10960:4"
-        ],
-        "removed": []
-      },
-      {
-        "segment": 92,
-        "added": [],
-        "removed": [
-          "A@5495:4"
-        ]
-      }
-    ]
-  },
-  "scene_lines_sha256": "aa438a50e7351805629b332e095fd490abbdbf10ea7f516d8ef8250ad8c2a454",
-  "independent_cold_runs": 2
+  }
 }

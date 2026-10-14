@@ -8,7 +8,7 @@
      "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
      "samples": "28a6e1d974bdaa0f386e8e33356db04085250e35eb5d0c6b88a3619483730edb",
      "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
-     "vram": "1c5711fdb4e38494b432a07a7e656efd09fc176f4b7d132d71d91307ce8076cd"
+     "vram": "5e225f67fe222e0be0c01d0f5f97c56a23aa46a7def67c46ea8d3573fa7507b9"
     }
    },
    "obs": {
@@ -33,18 +33,18 @@
     }
    },
    "rom_hash": {
-    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
+    "cn": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb"
    }
   },
   "cn-funeral-to-reception": {
    "check_hash": "0a98e0faadf1b57258a3b01e344caadd220f1cda7ed3d8792149180bad18814c",
    "hashes": {
     "cn": {
-     "ewram": "296d16c73a9a74defe77f436254642fc162e62293284944313f155c6c7754081",
+     "ewram": "0512463c3bc3c3562949ee40ed194aa36f283992806c554d33160c5d5cb2ab8c",
      "iwram": "3c089794fa7e99267529ad234692d6dcd894229da2d9e045b27b7e31b722479d",
      "samples": "b1a38bfa3f5179d14b68db6d7707997f6e00fe3db1cde02fad28369748faf4ba",
-     "shot": "19e09d488f1ab5b97ebdd0b775314b444df5cc8e91913c3d9d56c56d07ad2efc",
-     "vram": "3e408b5bba62311057a9dca3a0ef3490813638c87fcd22d0d7c546e894c6e59b"
+     "shot": "5ff056b3e9474b35ec305209e8df26ee4b7951fd4923f0c145f709a647b407d0",
+     "vram": "02713821d5afd10bff41bc7e5b0cadf034e5fc40af921e0f460a057ebf5678cf"
     }
    },
    "obs": {
@@ -69,7 +69,7 @@
     }
    },
    "rom_hash": {
-    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
+    "cn": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb"
    }
   },
   "cn-mash-a-advances": {
@@ -80,7 +80,7 @@
      "iwram": "f467dd05337c80595ab45881b7b733df9ea3009dc52422e0a33d8c8d0f3d06bc",
      "samples": "347029bfb861a23b0775851efadb24de6a6b91be49c5ccc5b93a3fbc35441d07",
      "shot": "0db66b7fc079ed0d27d0b734f264ac6a13d84aa3c55357c0d949dd7f00cab677",
-     "vram": "0a74c8f1c1903108f3284cfcfd1b7c755fd94d4522e40c5046768edbf4a4f1a3"
+     "vram": "0644c2efd847ed48de41fc3a730dc01750d9422c92ac3d9de23dd13aaa3b1aa4"
     }
    },
    "obs": {
@@ -105,18 +105,18 @@
     }
    },
    "rom_hash": {
-    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
+    "cn": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb"
    }
   },
   "cn-study-search-complete": {
    "check_hash": "f50d5e4d1991d45400ee921863958ff2fe1cdbf9fab4770fac62439b3ce9f1cd",
    "hashes": {
     "cn": {
-     "ewram": "dbb0deb0e9ad5ce2fcc7adcc7e43f41df7d81ed65a600d62f3aff1ca863d0b17",
+     "ewram": "3ae2a9f6115a110df98d012eded26cac2f2966ab741c136433a632c3c60cc372",
      "iwram": "639d8d6994a1d0d14e7309ffe0b86bb55b0ac4d635298cec93e1c4cb19e2aa2e",
      "samples": "94a4da93836cdf7b36570c34160ba8e32dada391c19e57966d8f4b720e8bac69",
-     "shot": "d442015e1c5aaf9220d01097fa91485655f9be7a71b8791ca82c89bc053ec222",
-     "vram": "df3296caa417f83d11ae1c347daa2e7248c3fd6606eb83428b42ce90f260c50c"
+     "shot": "3f0796d168e8784b45bb7bace66a1f28c8d139950d76b01760e7c4dc1d810bfb",
+     "vram": "158861809a3f081da232b0cb1714d01266027ea4c8e955df927e5137b96303ce"
     }
    },
    "obs": {
@@ -141,7 +141,7 @@
     }
    },
    "rom_hash": {
-    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7"
+    "cn": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb"
    }
   },
   "jp-cn-same-route-funeral": {
@@ -152,7 +152,7 @@
      "iwram": "b3bf814ca39b054c21a6b7be118947a6effadac6758bcce7dca30cd256c73f14",
      "samples": "0a524aace1eb7b92fb89b715f773e49541c1e30fedf53572bf6a30222fda81c4",
      "shot": "6b79d616d460617bfe88aa2b6cbd1b0d559e1e03f6369fbc29a1f42b83854a84",
-     "vram": "1c5711fdb4e38494b432a07a7e656efd09fc176f4b7d132d71d91307ce8076cd"
+     "vram": "5e225f67fe222e0be0c01d0f5f97c56a23aa46a7def67c46ea8d3573fa7507b9"
     },
     "jp": {
      "ewram": "9063b083bef09e6e662ea0bf85e69d32c485a74c634b28a88323955c6000efbc",
@@ -202,13 +202,13 @@
     }
    },
    "rom_hash": {
-    "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7",
+    "cn": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb",
     "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
    }
   }
  },
  "rom_hash": {
-  "cn": "a9b3c7cc43458edb1202cb0a342ab6136c4936758b19a959eef91a8a15160ba7",
+  "cn": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb",
   "jp": "bdcea43d1ef5a46336a33b54d9bb2b1a501d033dd04672af7cd6dcfcafd57dc2"
  },
  "version": 1
