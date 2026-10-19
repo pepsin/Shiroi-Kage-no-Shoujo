@@ -40,6 +40,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import font_patch
 import gbtext as g
 import mapio
+from rom_size import pad_rom, ROM_SIZE
 
 FAT = 0x15A000
 BASE = 0x15C000
@@ -407,6 +408,12 @@ def main():
                  [sys.executable, os.path.join(ROOT, 'tools', 'export_glyphs.py'),
                   '--rom', a.out, '--map', EXT_MAP, '--force'], a.out)
 
+
+    # Finish only after all appenders, preserving their offsets/zero guards.
+    # An arbitrary 11.x MiB image overlaps EEPROM in gpSP's ROM mirror map.
+    added = pad_rom(a.out)
+    print(f'\nROM 容量对齐：追加 {added} 字节 0xFF → {ROM_SIZE} 字节（16 MiB）',
+          flush=True)
 
     # --- self-checks ------------------------------------------------------
     # 每项都打标签：失败时末尾给一张清单，而不是只说 "see the output above"

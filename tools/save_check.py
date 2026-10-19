@@ -14,11 +14,14 @@
             否则返回 (base[0] == base[1]+base[2]+base[3]+base[4]+base[5]) mod 2^32
     槽 i（文件 0x20 + 2720*i = 块 340*i+4，340 个块 = 2720 字节）
         内存镜像 [u32 校验和][2716 字节负载]
-        0x08015DFC：读这 2720 字节 → 返回 (chk == 负载 679 个 u32 之和 mod 2^32)
+        0x08015DFC：EEPROM 读取失败最多尝试 10 次；读成功后返回
+                   (chk == 负载 679 个 u32 之和 mod 2^32)
     读档 0x08015AD0：槽校验 0 → 状态机置 7 → 显示 e417 第 9 条
                      「このファイルは壊れています」；1 → 解包 → 置 8。
 
-也就是说：**游戏只看这两处加法校验和，不看 ROM 的任何数据**。
+这里检查文件本身的魔数和加法校验和，没有 ROM 版本/hash 判定。
+它不能检查模拟器是否实际读取了这份文件、EEPROM 读操作是否成功，或旧即时存档
+是否遮蔽了它。因此通过表示文件内容符合判定条件，不等于所有模拟器环境都能读档。
 
 用法
 ----
@@ -40,9 +43,10 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# work/dbg/ 下的存档是调试过程留下的判定夹具（含故意造坏的样本），
-# 不能算进 --selftest 的结论，否则自检注定失败。
-BROKEN_DIR = os.path.join(ROOT, 'work', 'dbg') + os.sep
+# 调试/兼容性实验含故意造坏的样本及 gpSP 的 128 KiB 原始缓冲区。
+# 它们由各自实验检查，不属于 --selftest 要检查的玩家 8 KiB 存档。
+FIXTURE_DIRS = tuple(os.path.join(ROOT, 'work', name) + os.sep
+                    for name in ('dbg', 'compat'))
 
 SIZE = 8192
 MAGIC = 0x0DECADE0
@@ -227,9 +231,8 @@ def main():
         # 所以 --selftest 要连 work/ 一起扫，否则永远空手而归、把 make test 卡死。
         found = (glob.glob(os.path.join(ROOT, '*.sav'))
                  + glob.glob(os.path.join(ROOT, 'work', '**', '*.sav'), recursive=True))
-        # work/dbg/ 下的 zero.sav / err.sav 是**故意造坏**的判定夹具，把它们算进
-        # 结论会让自检永远失败；自检只回答「手上的正常存档还能不能读」。
-        paths += sorted(p for p in found if not p.startswith(BROKEN_DIR))
+        # 显式传入的文件仍照常检查；仅自动发现时排除实验夹具目录。
+        paths += sorted(p for p in found if not p.startswith(FIXTURE_DIRS))
     if not paths:
         print('== --selftest：没有找到可检查的 .sav（仓库根目录与 work/ 都是空的）')
         print('   work/ 是可再生的中间目录，清掉之后没有存档可查，跳过即可。')

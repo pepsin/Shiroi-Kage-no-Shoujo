@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import gbtext as g
 import export_script as ex
 import mapio
+from rom_size import ROM_SIZE
 
 # The JP-only tools cap codes at the original table size; the Chinese build
 # appends glyphs past it, so widen the accepted range before analysing.  The
@@ -82,6 +83,10 @@ def main():
     ap.add_argument('--map', default=os.path.join(ROOT, 'work', 'glyph_map.ext.csv'))
     a = ap.parse_args()
     rom = open(a.rom, 'rb').read()
+    if len(rom) != ROM_SIZE:
+        print(f'RESULT: PROBLEM：发布 ROM 必须为 {ROM_SIZE} 字节（16 MiB），'
+              f'当前 {len(rom)}；请重新构建，避免 gpSP ROM 镜像覆盖 EEPROM。')
+        return 1
     m = mapio.load_map(a.map)
     # decode rule (verified against the JP ROM): char = map[code] for
     # code < 0x20, else map[code - 1]
