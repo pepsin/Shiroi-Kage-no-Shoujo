@@ -45,7 +45,8 @@ class HarnessError(RuntimeError):
 
 
 def run_harness(harness, rom, frames, keys, prefix, *, frame_read='',
-                state=None, sav=None, save=None, timeout=60, choice_capture=None):
+                state=None, sav=None, save=None, timeout=60, choice_capture=None,
+                dialogue_capture=False):
     """Return fresh, complete evidence or fail; never consume a prior run's files."""
     if type(frames) is not int or frames <= 0 or timeout <= 0:
         raise ValueError('frames 和 timeout 必须为正')
@@ -75,6 +76,8 @@ def run_harness(harness, rom, frames, keys, prefix, *, frame_read='',
             captures = Path(tmp) / 'choices'
             captures.mkdir()
             env['GBARUN_CHOICE_DIR'] = str(captures.resolve())
+            if dialogue_capture:
+                env['GBARUN_CAPTURE_DIALOGUE'] = '1'
         env['GBARUN_RAMSNAP'] = f'{frames - 1}:{fresh}'
         env['GBARUN_SHOT'] = str(fresh) + '.ppm'
         if save:

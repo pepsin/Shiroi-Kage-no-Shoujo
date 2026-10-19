@@ -1,90 +1,177 @@
 {
   "status": "CLEAR",
-  "route_sha256": "3e2c4fc286b62e91c5afb2ff57a67d6d987c3d4a43aa6f676a7be6f4dc9830c2",
-  "rom_sha256": "bc1d21666c4c120fd081a2ab072702682f91fd64cf182ca0797fa142c2ba1beb",
+  "route_sha256": "f6177f93e423cbb2b963952b68b05bff594a93fc89c001ac6352def793d56e9c",
+  "rom_sha256": "b5a7d6b933f0790519bcd8321887eb5d535adfe7420b38ba70b04aed5acb9584",
   "segments": 124,
   "frames": 1489738,
   "ending": {
     "description": "完成主线结局与制作人员名单后，显示通关密码 NSYS。",
     "ppm_sha256": "d9e47962125666033dd2dfa0da2bcd174b172cda3e50fcf7367824f981796504"
   },
-  "verified_at_utc": "2026-10-14T03:59:09.640719+00:00",
-  "command": "make autoplay AUTOPLAY_ARGS='--route work/revalidate/route.candidate.json'",
+  "verified_at_utc": "2026-10-19T04:53:19.273987+00:00",
   "cold_start": true,
   "independent_cold_runs": 2,
-  "mgba_version": "0.10.5",
-  "harness_source_sha256": "407b7f91e0e12ea41c79dde7f5b9fc7144720304dbc50cfe48b43412b79bfc35",
+  "command": "make autoplay AUTOPLAY_ARGS='--route work/revalidate/route.candidate.json'",
+  "harness_source_sha256": "4473ac93898a078b1438908d99be342b25f7d3fd3da614553aedfa883fafbf47",
+  "harness_binary_sha256": "00fc1bdfe89a81168ebd2485e4c34a953ece75cd7d237a77eb70a3280ec38508",
   "runner_source_sha256": "e79934d96e5d9ac179ee3bf17c676fa035f33e5fb11b50690a9be87f34ef3663",
-  "harness_binary_sha256": "27d6ecfcc422ffc0959e2dbe801c90e2cd0545249dd51934b32b55cd420c87b2",
-  "translation_sha256": "2012a7646e5c0067a1b185d32ad8ab67b89dd3db6d42192a8a9644664de1c549",
-  "scene_lines_sha256": "0a00f9cfcc5bac346beedafa4e24f8e9bdf5aed64fab68fa21e766b0c9369756",
-  "location_assets_sha256": "63206339dbac6e1fb8674968531ffa83e197128eacc0a8db57af1bf6d11496ff",
-  "unit_tests": 79,
-  "strict_dynamic_checks": 5,
+  "translation_sha256": "6c7985edbc6fd61cdb7db5032c29845e16914f4309ca3253e86a3b9c07b2d5a8",
+  "scene_lines_sha256": "fc8fa1ec09824c91f4cd1aa7f031a0c8a126cae13e77a783fa090134feba6238",
+  "unit_tests": 99,
+  "dynamic_checks": {
+    "passed": 5,
+    "failures": 0,
+    "comparison": "invariants passed; expected hashes drifted after rebuild; baseline not refreshed"
+  },
   "static_checks": {
-    "translated_strings": 102280,
+    "translated_strings": 102326,
     "text_mismatches": 0,
     "missing_glyphs": 0,
-    "location_labels": 58,
-    "title_menu_labels_without_clipping": 3,
+    "outside_slot_writes": 0,
+    "unreviewed_script_slots": 0,
+    "explicitly_retained_slots": 380,
     "scene_index_complete": true,
-    "cartridge_save_readable": true
+    "cartridge_save_selftest_passed": true,
+    "rom_bytes": 16777216
   },
   "route_comparison": {
-    "segments": 124,
+    "source_route_sha256": "3c9a82f518de2232864e028868490776ccf0ef69274ad63b95efd98d4293a5cc",
     "position_differences": 0,
+    "different_segments": [],
     "controller_inputs_and_frames_unchanged": true
   },
   "choice_review": {
     "enabled": true,
     "screenshots": 673,
-    "counts": {
-      "inference": 673
-    },
-    "observer_source_sha256": "1ed35615136b6fc74c614352047c02681e711430f8d5fc2d52340cfe85d3d9fd",
-    "walkthrough_entry_coverage": {
-      "inference": {
-        "expected_entries": 99,
-        "captured_entries": 99,
-        "missing_entries": []
-      }
-    },
-    "previous_route_entry_coverage": {
-      "expected_entries": 99,
-      "captured_entries": 99,
-      "missing_entries": []
-    }
+    "captured_entries": 99,
+    "missing_previous_entries": []
   },
   "translation_revision": {
-    "changed_rows": 4,
-    "rows": [
-      "61:549",
-      "297:91",
-      "436:7",
-      "502:181"
-    ],
-    "entries": [
-      61,
-      297,
-      436,
-      502
-    ],
-    "base_commit": "558946ddb623f647fd087a39a8c2834d70f46999",
-    "input_timing_adjustments": []
+    "changed_rows_this_pass": 225,
+    "entries_this_pass": 35,
+    "added_rows_this_pass": 0,
+    "audit": "docs/translation-audit/consistency-revision.tsv",
+    "previous_pass_audit": "docs/translation-audit/context-revision.tsv"
   },
-  "font_revision": {
-    "status_and_map_font_px": 10,
-    "title_menu_font_px": 12,
-    "title_menu_y_offset_px": 1,
-    "files": {
-      "tools/fonts/fusion-pixel/fusion-pixel-10px-monospaced-zh_hans.ttf": "0606fac52ffd410d6291151e26816606469fd8ea121e2bf1d8b8788635fb934e",
-      "tools/fonts/fusion-pixel/fusion-pixel-12px-monospaced-zh_hans.ttf": "339f3c71531a6b3caae1023c68873eea45554e87571e8fac5c8954abe27fbff1"
+  "context_audit": {
+    "before_candidates": 27,
+    "after_candidates": 0,
+    "counts": {
+      "entries": 509,
+      "decoded_runs": 45887,
+      "unmapped_entries": 55,
+      "unmapped_runs": 102,
+      "unique_groups": 39104,
+      "master_slots": 102326,
+      "flagged_groups": 0
+    },
+    "source_sha256": "9883400ceaed8fde72b059120046061332e94c236b44f4f878a7285bbdd9d263",
+    "note": "Static review candidates, not a proof that all translations or branches are correct."
+  },
+  "dialogue_review": {
+    "segments": [
+      1,
+      2,
+      11,
+      12,
+      17,
+      18,
+      28,
+      29,
+      30,
+      31,
+      47,
+      48,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      67,
+      68,
+      74,
+      75,
+      79,
+      80,
+      86,
+      87,
+      88,
+      89,
+      90,
+      97,
+      98,
+      101,
+      114,
+      115,
+      116,
+      117,
+      119,
+      120
+    ],
+    "screenshots": 1399,
+    "captured_entries": [
+      1,
+      2,
+      24,
+      37,
+      68,
+      104,
+      106,
+      107,
+      109,
+      111,
+      113,
+      115,
+      116,
+      128,
+      178,
+      240,
+      272,
+      279,
+      309
+    ],
+    "manual_spot_checks": [
+      "work/dialogue-review/s017-f02650-e37.png",
+      "work/dialogue-review/s029-f03234-e68.png",
+      "work/reports/consistency-branch/s097-f02659-e272.png",
+      "work/reports/consistency-branch/s097-f02839-e272.png",
+      "work/reports/consistency-branch/s097-f03199-e309.png"
+    ],
+    "index": "work/dialogue-review/index.html",
+    "wrong_choice_branch": {
+      "rom_sha256": "b5a7d6b933f0790519bcd8321887eb5d535adfe7420b38ba70b04aed5acb9584",
+      "observed": true,
+      "method": "Normal controller inputs from fresh segment-0096 checkpoint; no memory or text injection",
+      "checkpoint": "work/revalidate/checkpoints/segment-0096.ss1",
+      "checkpoint_sha256": "859e49619a27f237501fae234cc9487868d0eb92a0f6a34d0dac558abf0f298c",
+      "navigation_source_route": "tests/autoplay/route.json",
+      "segment": 97,
+      "frames": 4700,
+      "keys": [
+        "A@5-365:4:90",
+        "DOWN@450:4",
+        "A@500:4",
+        "A@605-1775:4:90",
+        "DOWN@1865-1901:4:36",
+        "A@1940:4",
+        "A@2030-4640:4:90"
+      ],
+      "protagonist_answer": "搜索周围",
+      "assistant_answer": "前往徳子的家（游戏自动）",
+      "verified_rows": [
+        "272:94-98",
+        "309:0-2"
+      ],
+      "screenshots": [
+        "s097-f02659-e272.png",
+        "s097-f02839-e272.png",
+        "s097-f03199-e309.png"
+      ],
+      "screens_captured": 32,
+      "note": "This proves the protagonist-correct/assistant-incorrect branch. Other reused suffix combinations were checked statically; not every branch was played."
     }
   },
-  "output_layout": {
-    "root": "work/index.html",
-    "autoplay": "work/autoplay/",
-    "inference_review": "work/autoplay/inference-review/index.html",
-    "custom_output_directory": false
-  }
+  "scope": "Second context pass: cross-line repetition, omitted negation, wrong subject/object, reused suffixes and repeated complete phrases; not a line-by-line review of every branch."
 }

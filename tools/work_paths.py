@@ -16,6 +16,7 @@ DEBUG_PLAY = WORK / 'dbg/play'
 
 
 OUTPUTS = (
+    ('对白上下文审核', 'dialogue-review/index.html', '按已验证路线重放对白与选项，保留脚本和帧号'),
     ('推理题审核', 'autoplay/inference-review/index.html', '仅保留推理题，包含滚动页'),
     ('通关结果', 'autoplay/result.json', 'CLEAR 才代表完整路线通过'),
     ('通关画面', 'autoplay/ending.png', '本次运行的末帧'),

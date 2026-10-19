@@ -31,7 +31,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 16.0	scene	16	0	190	191	1898			
 16.1	scene	16	191	205	15	69		神宮寺	
 16.2	scene	16	206	208	3	28			
-16.3	scene	16	209	209	1	11			
+16.3	scene	16	209	210	2	28			
 17.0	scene	17	0	359	360	3748	事務所前		
 17.1	scene	17	360	377	18	94		洋子 神宮寺 春菜	
 19.0	scene	19	0	401	402	4155			
@@ -113,6 +113,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 50.1	scene	50	319	322	4	24			
 51.0	scene	51	0	351	352	3781			
 51.1	scene	51	352	376	25	143		洋子 神宮寺 春菜 貴之	
+51.2	scene	51	377	377	1	14			
 52.0	scene	52	0	284	281	2689		神宮寺 洋子 春菜	
 52.1	scene	52	285	288	4	26			
 53.0	scene	53	0	260	261	2623			
@@ -173,6 +174,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 80.1	scene	80	957	1003	47	329		神宮寺	
 80.2	scene	80	1004	1010	7	76			
 80.3	scene	80	1011	1014	4	27			
+80.4	scene	80	1015	1022	8	20			
 81.0	scene	81	0	496	497	5250			
 81.1	scene	81	497	524	28	175		洋子 神宮寺 春菜	
 81.2	scene	81	525	527	3	23			
@@ -219,7 +221,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 102.0	scene	102	0	507	508	5445		洋子の声	
 102.1	scene	102	508	531	24	121		洋子 神宮寺 春菜	
 102.2	scene	102	532	537	6	57			
-102.3	scene	102	538	538	1	11			
+102.3	scene	102	538	539	2	27			
 103.0	scene	103	0	158	157	1491			
 104.0	scene	104	0	288	289	2982	事務所前		
 104.1	scene	104	289	307	19	109		洋子 神宮寺 春菜	
@@ -244,6 +246,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 114.2	scene	114	288	290	3	23			
 115.0	scene	115	0	267	268	2759			
 115.1	scene	115	268	295	28	173		美鈴 貴之 知也 神宮寺 洋子 春菜	
+115.2	scene	115	296	296	1	16	西新宿9丁目		
 116.0	scene	116	0	546	547	5943	新宿西小学校		
 116.1	scene	116	547	577	31	178		美鈴 貴之 知也 神宮寺 洋子 春菜	
 116.2	scene	116	578	578	1	9			
@@ -271,6 +274,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 126.1	scene	126	957	1003	47	329		神宮寺	
 126.2	scene	126	1004	1010	7	76			
 126.3	scene	126	1011	1014	4	27			
+126.4	scene	126	1015	1022	8	20			
 127.0	scene	127	0	236	237	2369	大河原家		
 127.1	scene	127	237	250	14	71		洋子 神宮寺 春菜	
 127.2	scene	127	251	253	3	23			
@@ -299,6 +303,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 138.1	scene	138	227	229	3	25			
 139.0	scene	139	0	390	391	4152			
 139.1	scene	139	391	416	26	147		神宮寺 貴之 洋子 春菜 知也 熊野	
+139.2	scene	139	417	417	1	14			
 140.0	scene	140	0	210	211	2074			
 140.1	scene	140	211	228	18	104		洋子 神宮寺 春菜	
 141.0	scene	141	0	204	205	2027	新宿歌舞伎町		
@@ -377,6 +382,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 173.1	scene	173	957	1003	47	329		神宮寺	
 173.2	scene	173	1004	1010	7	76			
 173.3	scene	173	1011	1014	4	27			
+173.4	scene	173	1015	1022	8	20			
 174.0	scene	174	0	247	245	2400	大河原家	洋子 神宮寺 春菜	
 174.1	scene	174	248	250	3	25			
 175.0	scene	175	0	322	319	3198		神宮寺 洋子 春菜	
@@ -420,7 +426,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 191.0	scene	191	0	784	785	8455			
 191.1	scene	191	785	814	30	195		神宮寺 春菜	
 191.2	scene	191	815	819	5	44			
-191.3	scene	191	820	820	1	11			
+191.3	scene	191	820	821	2	27			
 192.0	scene	192	0	156	155	1468			
 193.0	scene	193	0	323	324	3343			
 193.1	scene	193	324	343	20	121		洋子 神宮寺 春菜	
@@ -476,6 +482,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 215.1	scene	215	957	1003	47	329		神宮寺	
 215.2	scene	215	1004	1010	7	76			
 215.3	scene	215	1011	1014	4	27			
+215.4	scene	215	1015	1022	8	20			
 216.0	scene	216	0	364	365	3771	大河原家		
 216.1	scene	216	365	380	16	72		洋子 神宮寺 春菜	
 216.2	scene	216	381	383	3	23			
@@ -513,11 +520,12 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 231.1	scene	231	325	347	23	140		洋子 神宮寺 春菜	
 232.0	scene	232	0	329	330	3414	アルタ前		
 232.1	scene	232	330	354	25	151		洋子 神宮寺 春菜	
-233.0	scene	233	0	293	294	2948			
+233.0	scene	233	0	293	294	2962			
 233.1	scene	233	294	314	21	114		春菜 神宮寺 洋子	
 233.2	scene	233	315	317	3	34			
 233.3	scene	233	318	322	5	35			
 233.4	scene	233	323	325	3	35			
+233.5	scene	233	326	326	1	16			
 240.0	scene	240	0	678	669	7116		神宮寺 洋子 春菜 男 中西 哲三 子供	
 240.1	scene	240	679	688	10	58			
 246.0	scene	246	0	107	104	1089		貴之 知也 美鈴 神宮寺 洋子 春菜	
@@ -594,9 +602,9 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 296	quiz	296	0	14	15	128			问答/审讯分支
 297	quiz	297	0	110	104	994			问答/审讯分支
 298	quiz	298	0	93	87	762			问答/审讯分支
-299	quiz	299	0	95	91	832			问答/审讯分支
+299	quiz	299	0	96	92	833			问答/审讯分支
 300	quiz	300	0	76	70	683			问答/审讯分支
-301	quiz	301	0	56	56	573			问答/审讯分支
+301	quiz	301	0	57	57	574			问答/审讯分支
 302	quiz	302	0	91	92	870			问答/审讯分支
 303	quiz	303	0	56	57	522			问答/审讯分支
 304	quiz	304	0	112	110	1027		洋子 神宮寺 春菜	问答/审讯分支
@@ -605,12 +613,12 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 307	quiz	307	0	43	44	391		貴之	问答/审讯分支
 308	quiz	308	0	76	77	724		貴之	问答/审讯分支
 309	quiz	309	0	57	55	503			问答/审讯分支
-310	quiz	310	0	41	40	398			问答/审讯分支
+310	quiz	310	0	41	40	404			问答/审讯分支
 311	quiz	311	0	40	41	363			问答/审讯分支
 312	quiz	312	0	57	58	544			问答/审讯分支
 313	quiz	313	0	56	53	422		声	问答/审讯分支
 314	quiz	314	0	571	571	6273			问答/审讯分支
-315	quiz	315	0	154	155	1171		佐ー木 春菜 佐藤亜希 北条隼人	问答/审讯分支
+315	quiz	315	0	155	156	1175		佐ー木 春菜 佐藤亜希 北条隼人	问答/审讯分支
 316	quiz	316	0	43	35	336		洋子	问答/审讯分支
 317	quiz	317	0	46	35	301		洋子	问答/审讯分支
 318	quiz	318	0	36	37	365		神宮寺 洋子	问答/审讯分支
@@ -656,9 +664,9 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 358	quiz	358	0	24	24	161		神宮寺	问答/审讯分支
 359	quiz	359	0	26	27	231		神宮寺	问答/审讯分支
 360	quiz	360	0	45	45	431		洋子 春菜	问答/审讯分支
-361	quiz	361	0	21	22	145		神宮寺	问答/审讯分支
+361	quiz	361	0	22	23	146		神宮寺	问答/审讯分支
 362	quiz	362	0	47	47	406		洋子 春菜	问答/审讯分支
-363	quiz	363	0	44	45	341		洋子 春菜	问答/审讯分支
+363	quiz	363	0	45	46	342		洋子 春菜	问答/审讯分支
 364	quiz	364	0	46	46	455		洋子 春菜	问答/审讯分支
 365	quiz	365	0	46	46	472		洋子 春菜	问答/审讯分支
 366	quiz	366	0	44	45	474		洋子 春菜	问答/审讯分支
@@ -685,7 +693,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 387	quiz	387	0	49	49	425		洋子 春菜	问答/审讯分支
 388	quiz	388	0	45	46	410		佐藤亜希 洋子 春菜	问答/审讯分支
 389	quiz	389	0	47	48	433		神宮寺 洋子 春菜	问答/审讯分支
-390	quiz	390	0	45	46	440		洋子 春菜	问答/审讯分支
+390	quiz	390	0	46	47	441		洋子 春菜	问答/审讯分支
 391	quiz	391	0	46	47	441		神宮寺 洋子 春菜	问答/审讯分支
 392	quiz	392	0	44	44	423		洋子 春菜	问答/审讯分支
 393	quiz	393	0	44	44	365		洋子 春菜	问答/审讯分支
@@ -788,7 +796,7 @@ scene	kind	entry	idx_from	idx_to	rows	codes	location	speakers	note
 491	credits	491	0	14	15	132			STAFF/寄语页
 500	credits	500	0	250	249	2678		佐ー木 神宮寺 女性	STAFF/寄语页
 501	credits	501	0	347	342	3530		智美 神宮寺	STAFF/寄语页
-502	credits	502	0	373	374	3774		少年 貴之	STAFF/寄语页
+502	credits	502	0	374	375	3775		少年 貴之	STAFF/寄语页
 503	credits	503	0	446	447	4701		神宮寺 佐藤亜希	STAFF/寄语页
 504	credits	504	0	346	347	3620		神宮寺 子供	STAFF/寄语页
 505	credits	505	0	323	324	3363		神宮寺 徳子 佐藤亜希	STAFF/寄语页

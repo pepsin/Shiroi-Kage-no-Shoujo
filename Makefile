@@ -93,6 +93,7 @@ slots: merge                                 ## 预检：译文是否装得进�
 		echo; \
 		echo "!! 已停在第 2 步（槽位预检）：没有打包，$(ROM) 未被改动。"; \
 		exit 1; }
+	@$(PY) tools/find_missing_structured.py --check
 
 index: merge                                 ## 重建 data/scenes.tsv / scene_lines.tsv
 	@echo "== [3/5] 重建场景索引"
@@ -108,7 +109,10 @@ merge:                                       ## 把 scene_lines 上的手改译�
 		&& echo "   两边一致" || { echo "!! 合并后仍不一致，见上面输出"; exit 1; }
 
 # ---------------------------------------------------------------- 检查
-.PHONY: check lint qa scenes show entries find save
+.PHONY: check lint qa audit-context scenes show entries find save
+audit-context:                               ## 上下句候选与共用句尾组合（只读，不自动改译文）
+	@$(PY) tools/audit_context.py
+
 check:                                       ## 索引完整性（覆盖 / 顺序）
 	@$(PY) tools/scene_index.py check
 

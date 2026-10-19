@@ -1,184 +1,124 @@
 #!/usr/bin/env python3
-"""Find every displayable string the master never captured - structurally.
+"""Audit every dispatched script's referenced text slots against the master.
 
-`extract_pool.scan_pools` (and the later find_missing_runs.py heuristic) miss
-short groups, so menus and one-line replies stayed Japanese in game.  Instead of
-guessing with heuristics this walks each FAT entry the way the *game* does:
-
-  * the offset table (u32, monotonically increasing, based at `base`), and
-  * NUL-terminated runs in the string pool outside the table,
-  * runs that start right after a 0x0000 terminator.
-
-Anything whose (entry, offset) is not already in data/translation.tsv is a
-candidate; obvious bitmap/table noise is dropped by a shape filter that mirrors
-drop_noise_rows.py.
-
-Usage:
-  find_missing_structured.py [--min-len 2]
-                             [--show 40]
+Identity is (entry, absolute decompressed offset), never source text: identical
+Japanese can have several independently stored instances. The engine's offset
+tables can be odd-aligned. Only table-referenced, terminated strings are reported;
+bytecode, trailing branch tables and unreferenced bitmap noise are excluded.
+This is a coverage report, not authorization to translate or overwrite a slot.
 """
+import argparse
+from collections import defaultdict
+import csv
+from pathlib import Path
+import struct
+
+import export_script as ex
+import gbtext as g
+from extract_pool import branch_table_span
+from romdbg import entry_table
 from work_paths import output_file
 
-import argparse
-import collections
-import csv
-import os
-import struct
-import sys
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, 'tools'))
-
-import gbtext as g          # noqa: E402
-import export_script as ex  # noqa: E402
-
-MASTER = os.path.join(ROOT, 'data', 'translation.tsv')
-
-KANA = set('ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぺへべぽほぼぽまみむめもゃやゅゆょよらりるれろわをん'
-           'ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブペヘベホボポマミムメモャヤュユョヨラリルレロワヲンー')
-KANJI = set(chr(c) for c in range(0x4E00, 0x9FA0))
-PUNCT = set('、。，．！？「」『』（）〈〉《》・：；“”‘’‥…―ー～＋＜＞％×○●□■')
-ALLOWED = KANA | KANJI | PUNCT | set('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz /')
-# table/bitmap noise shapes (see drop_noise_rows.py)
-FILLER = set('‥…“”‘’・‥ ')
+ROOT = Path(__file__).resolve().parents[1]
+MASTER = ROOT / 'data/translation.tsv'
+ALLOWLIST = ROOT / 'data/script_coverage_allowlist.tsv'
 
 
-def plausible(text):
-    """Reject byte-noise: require real kana/kanji content and a clean shape."""
-    if len(text) < 2:
-        return False
-    if any(c not in ALLOWED for c in text):
-        return False
-    letters = sum(1 for c in text if c in KANA or c in KANJI)
-    if letters == 0:
-        return False
-    if letters / len(text) < 0.34:          # mostly punctuation/spaces -> noise
-        return False
-    if len(text) <= 3 and all(c in FILLER for c in text):
-        return False
-    if len(text) <= 4 and sum(1 for c in text if c in KANA) and \
-            sum(1 for c in text if c in KANJI) and len(text) == 2:
-        return False                          # kana+kanji pair = table noise
-    return True
-
-
-def master_texts():
-    """(entry, jp_text) pairs already in the master, plus a global text set.
-
-    The master's pool rows store a different offset convention than the table
-    walk, so compare on the decoded text instead of the offset.
-    """
-    per_entry, every = set(), set()
-    if os.path.exists(MASTER):
-        for r in csv.DictReader(open(MASTER, encoding='utf-8'), delimiter='\t'):
-            t = (r.get('jp_text') or '').strip()
-            if not t:
+def master_slots(path=MASTER):
+    slots = set()
+    spans = defaultdict(list)
+    with open(path, encoding='utf-8', newline='') as f:
+        for fields in csv.reader(f, delimiter='\t'):
+            if len(fields) < 7 or not fields[0].isdigit():
                 continue
-            every.add(t)
-            try:
-                per_entry.add((int(r['entry']), t))
-            except (KeyError, ValueError):
-                continue
-    return per_entry, every
-
-
-def decode(codes, table):
-    """Same convention as export_script.jp_decode (that is what the master holds)."""
-    return ex.jp_decode(codes, table)
+            off = int(fields[2])
+            if len(fields) < 8 or fields[7] != 'pool':
+                off += 0x7A0
+            slots.add((int(fields[0]), off))
+            spans[int(fields[0])].append((off, off + 2 * (int(fields[3]) + 1)))
+    for eid, intervals in spans.items():
+        end = -1
+        for lo, hi in sorted(intervals):
+            if lo < end:
+                raise ValueError(f'e{eid} 翻译槽重叠 @{lo}；完整行与误收后缀不可同时写回')
+            end = hi
+    return slots
 
 
 def table_strings(d):
-    """[(offset, codes)] for every offset-table entry."""
-    info = ex.analyse(d)
-    if not info or not info.get('table_off'):
-        return []
-    toff, base = info['table_off'], info['base']
-    vals, p = [], toff
-    while p + 4 <= len(d):
-        x = struct.unpack_from('<I', d, p)[0]
-        if x == 0xFFFFFFFF or x > len(d):
-            break
-        if vals and x <= vals[-1]:
-            break
-        vals.append(x)
-        p += 4
-    out = []
-    for v in vals:
-        off = base + v
-        codes, q = [], off
-        while q + 2 <= len(d):
-            c = struct.unpack_from('<H', d, q)[0]
+    """Yield (engine index, absolute offset, codes), after structural checks."""
+    toff, vals = entry_table(d)
+    if toff is None or toff < 0x7A0 + 0x15:
+        return
+    table_end = toff + 4 * len(vals)
+    branch = branch_table_span(d)
+    for idx, relative in enumerate(vals):
+        off = 0x7A0 + relative
+        if off < table_end or off + 2 > len(d):
+            continue
+        codes, p = [], off
+        while p + 2 <= len(d):
+            c = struct.unpack_from('<H', d, p)[0]
+            p += 2
             if c == 0:
                 break
             codes.append(c)
-            q += 2
-        if codes:
-            out.append((off, codes))
-    return out
-
-
-def pool_runs(d):
-    """NUL-terminated runs outside the table (start = 0 or after a terminator)."""
-    codes = list(struct.unpack_from('<%dH' % (len(d) // 2), d, 0))
-    runs = []
-    i = 0
-    start = 0
-    while i < len(codes):
-        if codes[i] == 0:
-            if i > start:
-                runs.append((start * 2, codes[start:i]))
-            start = i + 1
-        i += 1
-    if start < len(codes):
-        runs.append((start * 2, codes[start:]))
-    return runs
-
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--rom', default=g.JP_ROM)
-    ap.add_argument('--min-len', type=int, default=2)
-    ap.add_argument('--show', type=int, default=30)
-    a = ap.parse_args()
-    a.out = output_file('reports/missing-structured.tsv')
-
-    rom = open(a.rom, 'rb').read()
-    table = ex.load_table('jp')
-    per_entry, every_text = master_texts()
-    rows = []
-    stats = collections.Counter()
-    for eid in range(1500):
-        d = g.load_entry(rom, eid)
-        if not d:
+        else:
             continue
-        cand = list(table_strings(d)) + list(pool_runs(d))
-        local = set()
-        for off, codes in cand:
-            if len(codes) < a.min_len:
-                continue
-            text = decode(codes, table).strip()
-            if (eid, text) in per_entry or text in every_text:
-                stats['known'] += 1
-                continue
-            if text in local:
-                continue
-            local.add(text)
-            if not plausible(text):
-                stats['noise'] += 1
-                continue
-            rows.append((eid, off, len(codes), text))
-            stats['candidate'] += 1
-    rows.sort()
-    with open(a.out, 'w', encoding='utf-8', newline='') as f:
-        w = csv.writer(f, delimiter='\t')
-        w.writerow(['entry', 'offset', 'n_codes', 'jp_text'])
-        w.writerows(rows)
-    print(f'known {stats["known"]}, filtered noise {stats["noise"]}, '
-          f'candidates {stats["candidate"]} -> {a.out}')
-    for r in rows[:a.show]:
-        print(f'  e{r[0]} @{r[1]} n={r[2]}  {r[3]}')
-    return 0
+        if branch and off < branch[1] and p > branch[0]:
+            continue
+        if codes and all(c <= 0x6A8 or c >= 0xFE00 for c in codes):
+            yield idx, off, codes
+
+
+def missing_strings(eid, data, known, table, min_len=1):
+    for idx, off, codes in table_strings(data):
+        if len(codes) >= min_len and (eid, off) not in known:
+            yield eid, idx, off, len(codes), ex.jp_decode(codes, table)
+
+
+def unreviewed(rows, allowlist):
+    """A retained slot is approved only at its exact entry/offset AND source."""
+    with open(allowlist, encoding='utf-8', newline='') as f:
+        allowed = {(int(r['entry']), int(r['offset']), r['jp_text'])
+                   for r in csv.DictReader(f, delimiter='\t') if r['reason'].strip()}
+    return [r for r in rows if (r[0], r[2], r[4]) not in allowed]
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--rom', default=g.JP_ROM)
+    ap.add_argument('--master', default=MASTER)
+    ap.add_argument('--min-len', type=int, default=1)
+    ap.add_argument('--show', type=int, default=30)
+    ap.add_argument('--check', action='store_true', help='fail on unreviewed slots')
+    ap.add_argument('--allowlist', default=ALLOWLIST)
+    args = ap.parse_args(argv)
+    if args.min_len < 1 or (args.check and args.min_len != 1):
+        ap.error('--check 必须包含一字选项（--min-len 1）')
+    rom = Path(args.rom).read_bytes()
+    table, known = ex.load_table('jp'), master_slots(args.master)
+    # Only entries actually dispatched by loadScript, not fonts/graphics/e0.
+    entries = sorted({struct.unpack_from('<h', rom, 0x15C004 + i * 8)[0]
+                      for i in range(509)})
+    rows = []
+    for eid in entries:
+        data = g.load_entry(rom, eid)
+        if data:
+            rows.extend(missing_strings(eid, data, known, table, args.min_len))
+    path = output_file('reports/missing-structured.tsv')
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f, delimiter='\t', lineterminator='\n')
+        writer.writerow(['entry', 'engine_idx', 'offset', 'n_codes', 'jp_text'])
+        writer.writerows(rows)
+    print(f'{len(entries)} dispatched entries; {len(rows)} uncovered referenced slots -> {path}')
+    pending = unreviewed(rows, args.allowlist) if args.check else rows
+    for r in pending[:args.show]:
+        print(f'  e{r[0]} row={r[1]} @{r[2]} n={r[3]} {r[4]}')
+    if args.check:
+        print(f'{len(pending)} unreviewed; {len(rows) - len(pending)} explicitly retained')
+    return int(args.check and bool(pending))
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    raise SystemExit(main())

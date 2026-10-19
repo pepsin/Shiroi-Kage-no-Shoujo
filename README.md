@@ -116,6 +116,19 @@ python3 tools/save_check.py --selftest  # 存档格式 / 校验和
 也可以直接改 `data/translation.tsv` 的 `translation` 列，再跑一次 `build_rom.py`
 （这条路只有槽位预检，超长会被拦住）。
 
+`make` 还会按引擎行表检查所有 509 个剧本条目的文本实例，兼容奇数偏移；
+同一句日文出现在别处不算本实例已翻译。已审核且应原样保留的姓名、数字、符号等
+记录在 `data/script_coverage_allowlist.tsv`，须同时匹配条目、偏移和原文。
+单独复查用 `python3 tools/find_missing_structured.py --check`。
+改对白时需同时读提问、选项、回答及复用的后半句；实际画面可通过
+`tools/review_dialogue.py` 复跑，见 [上下文复核](tests/autoplay/README.md#对白与选项上下文复核)。
+
+`make audit-context` 扫描跨行重复、人物指代、疑似否定丢失和寻找对象颠倒，
+输出 `work/reports/context-audit.tsv`；`context-shared-lines.tsv` 列出同一行的所有已解析搭配。
+它按引擎行号对应的实际偏移映射译文，不把主表行号或相邻存储行当作播放顺序。
+静态解析不能证明分支可达性，遇到不明指令会跳过组合；报告只供复核，不自动替换或阻断构建。
+修订时先核对整句与共用分支，再用自动游玩确认屏幕。
+
 ---
 
 ## 二、目录结构

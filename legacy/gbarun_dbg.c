@@ -436,10 +436,10 @@ static uint32_t reviewRead32(uint32_t address) {
 	return value;
 }
 
-static int captureChoice(const char* directory, long frame) {
+static int captureChoice(const char* directory, long frame, int dialogue) {
 	uint32_t ui = reviewRead32(0x02015160);
 	uint32_t cursor = reviewRead32(0x03007C40);
-	if (!(ui >= 2 && ui <= 4) && !(ui == 0 && cursor >= 0x02000000)) return 0;
+	if (!dialogue && !(ui >= 2 && ui <= 4) && !(ui == 0 && cursor >= 0x02000000)) return 0;
 	char path[1024];
 	if (snprintf(path, sizeof(path), "%s/frame-%06ld.bin", directory, frame) >= (int) sizeof(path)) return -1;
 	FILE* file = fopen(path, "wb");
@@ -992,7 +992,7 @@ int main(int argc, char** argv) {
 			int boundary = f == frames - 1;
 			for (int e = 0; !boundary && e < nEvents; ++e) boundary = events[e].frame == f + 1;
 			if (boundary) {
-				int captured = captureChoice(choiceDir, f);
+				int captured = captureChoice(choiceDir, f, getenv("GBARUN_CAPTURE_DIALOGUE") != NULL);
 				if (captured < 0) { fprintf(stderr, "choice capture failed\n"); return 2; }
 				choiceCount += captured;
 			}
