@@ -32,7 +32,8 @@ What this tool changes
   so the reconstruction reads as a soft out-of-focus background;
 * the Chinese lines are drawn back into the same bands with the zpix 11x11
   pixel font (white core + grey AA + dark halo, the original style);
-* the bottom two tile rows become a footer bar carrying the credit line.
+* the bottom two tile rows become a footer bar carrying the credit line and
+  the supplied avatar immediately before pepsin.
 
 The rewritten blob is larger than the stock 12528-byte stream, so it is appended
 to the end of the ROM and the table entry is repointed; the blob has to stay
@@ -77,8 +78,11 @@ LINES = [
     (87, 'すべて架空のものであり', '全部皆为虚构'),
     (111, '実在のものとは関係ありません。', '与现实的人物和团体无关。'),
 ]
-CREDIT = '汉化:pepsin, deepseek 4.1 flash + harness'
+CREDIT = '汉化:pepsin, deepseek, kimi, gpt'
 CREDIT_Y = 144
+AVATAR_PATH = os.path.join(ROOT, 'data', 'disclaimer', 'avatar.png')
+AVATAR_SIZE = 16
+AVATAR_GAP = 3
 FOOTER_ROWS = (18, 19)
 CJK_ADVANCE = 12
 SPACE_ADVANCE = 4
@@ -270,6 +274,41 @@ def dim_tiles(page, ink):
     return sorted(set(bad))
 
 
+def draw_credit(page, scr, font):
+    """Centre the credit, reserving a square avatar between ':' and pepsin."""
+    label, names = CREDIT.split(':', 1)
+    label += ':'
+    label_width = sum(advance(ch, font.bitmap(ch)) for ch in label)
+    names_width = sum(advance(ch, font.bitmap(ch)) for ch in names)
+    total = label_width + names_width + AVATAR_SIZE + 2 * AVATAR_GAP
+    if total > W or CREDIT_Y + AVATAR_SIZE > H:
+        raise SystemExit('credit and avatar do not fit the footer')
+    left = (W - total) // 2
+    avatar_x = left + label_width + AVATAR_GAP
+    names_x = avatar_x + AVATAR_SIZE + AVATAR_GAP
+    draw_ink(page, scr, text_ink(font, label, CREDIT_Y,
+                               left + label_width // 2))
+    draw_ink(page, scr, text_ink(font, names, CREDIT_Y,
+                               names_x + names_width // 2))
+    with Image.open(AVATAR_PATH) as source:
+        avatar = source.convert('RGBA').resize(
+            (AVATAR_SIZE, AVATAR_SIZE), Image.Resampling.NEAREST)
+    for y in range(AVATAR_SIZE):
+        for x in range(AVATAR_SIZE):
+            r, g, b, alpha = avatar.getpixel((x, y))
+            if not alpha:
+                continue
+            xx, yy = avatar_x + x, CREDIT_Y + y
+            tile, bank, _pen = scr[yy][xx]
+            rgb = (r, g, b)
+            if alpha < 255:
+                background = page.color(bank, page.get_px(tile, xx % 8, yy % 8))
+                rgb = tuple((fg * alpha + bg * (255 - alpha) + 127) // 255
+                            for fg, bg in zip(rgb, background))
+            page.set_px(tile, xx % 8, yy % 8,
+                        page.nearest_pen(bank, rgb))
+
+
 # --------------------------------------------------------------------------
 # the edit
 # --------------------------------------------------------------------------
@@ -350,7 +389,7 @@ def translate(page, verbose=True):
         if bad and verbose:
             print(f'  warning: {cn!r} touches dim tiles {bad}', file=sys.stderr)
         draw_ink(page, scr, ink_px)
-    draw_ink(page, scr, text_ink(font, CREDIT, CREDIT_Y))
+    draw_credit(page, scr, font)
     return page
 
 
